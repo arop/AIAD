@@ -1,6 +1,10 @@
 package agents;
 
+import FIPA.DateTime;
 import jade.core.Agent;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import hospital.*;
 import jade.domain.DFService;
@@ -8,6 +12,8 @@ import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
+
+import java.util.Date;
 import java.util.Random;
 
 
@@ -15,12 +21,17 @@ public class PacienteAgent extends Agent {
     private float health;
     private ArrayList<Exame> exames;
     private boolean isSequencial; //true - exames tem que ser feitos por ordem
+    private Date dataChegada = new Date();
+    private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+
+
 
     @Override
     protected void setup() {
         super.setup();
         System.out.println("PacienteAgent.setup");
         System.out.println("Usage: Paciente(health=1,isSequencial=false)");
+
 
         try {
             // Get the title of the book to buy as a start-up argument
@@ -60,10 +71,10 @@ public class PacienteAgent extends Agent {
     }
 
     /**
-     Inner class OfferRequestsServer.
-     Este é o behaviour usado pelos pacientes para responder as "ofertas de exame" do hospital.
-     Se o exame que está disponível for um dos que o paciente necessita então este
-     responde com uma mensagem PROPOSE a especificar a sua urgência. Caso contrário é enviada de volta uma mensagem REFUSE .
+     * Inner class OfferRequestsServer.
+     * Este é o behaviour usado pelos pacientes para responder as "ofertas de exame" do hospital.
+     * Se o exame que está disponível for um dos que o paciente necessita então este
+     * responde com uma mensagem PROPOSE a especificar a sua urgência. Caso contrário é enviada de volta uma mensagem REFUSE .
      */
     private class OfferRequestsServer extends CyclicBehaviour {
         public void action() {
@@ -79,7 +90,8 @@ public class PacienteAgent extends Agent {
                 if (urgencia != null) {
                     // The requested book is available for sale. Reply with the price
                     reply.setPerformative(ACLMessage.PROPOSE);
-                    reply.setContent(String.valueOf(urgencia.intValue()));
+                    //reply.setContent(String.valueOf(urgencia.intValue()));
+                    reply.setContent(dateFormat.format(dataChegada));
                 }
                 else {
                     // The requested book is NOT available for sale.

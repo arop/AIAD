@@ -1,7 +1,11 @@
 package agents;
 
 import jade.core.Agent;
+
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+
 import hospital.*;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.*;
@@ -38,7 +42,7 @@ public class RecursoAgent extends Agent {
 
             // Vai buscar todos os pacientes que precisam de um determinado exame
             // É preciso mudar para informar isto só quando estiver available e não tipo ciclo.
-            addBehaviour(new TickerBehaviour(this, 60000) {
+            addBehaviour(new TickerBehaviour(this, 10000) {
                 protected void onTick() {
                     // De seguida é feito update da lista dos pacientes porque podem entrar pacientes a qq hora
                     DFAgentDescription template = new DFAgentDescription();
@@ -87,6 +91,10 @@ public class RecursoAgent extends Agent {
         private int repliesCnt = 0; // O número de respostas de pacientes
         private MessageTemplate mt; // O template para receber respostas
         private int step = 0;
+        private Date maisAntigoVal;
+        private AID maisAntigo;
+
+
         public void action() {
             switch (step) {
                 case 0:
@@ -111,28 +119,62 @@ public class RecursoAgent extends Agent {
                         // Recebeu resposta
                         if (reply.getPerformative() == ACLMessage.PROPOSE) {
                             // Isto é uma bid
-                            int urgencia = Integer.parseInt(reply.getContent());
+                            //int urgencia = Integer.parseInt(reply.getContent());
+
+                            Date dataChegada = new Date();
+                            try {
+                                dataChegada = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(reply.getContent());
+                                System.out.println(dataChegada);
+                            }catch(Exception e) {
+                                System.out.println(e.getMessage());
+                            }
+                            
+/*
+                            // Escolhe o mais urgente
                             if (maisUrgente == null || urgencia > maisUrgenteVal) {
-                                // Escolhe a melhor "oferta", isto é o paciente mais urgente
+                                //Escolhe a melhor "oferta", isto é o paciente mais urgente
                                 maisUrgenteVal = urgencia;
                                 maisUrgente = reply.getSender();
                             }
+*/
+
+                            // Escolhe o 1º que chegou - mais antigo
+                            System.out.println("Antes do if");
+
+                            if (maisAntigo == null || !dataChegada.before(maisAntigoVal)) {
+                                System.out.println("Dentro do if");
+                                maisAntigoVal = dataChegada;
+                                maisAntigo = reply.getSender();
+                            }
+
+
                         }
                         repliesCnt++;
+                        System.out.println(repliesCnt);
+
+                        System.out.println("Pacientes length:" + pacientes.length);
+
                         if (repliesCnt >= pacientes.length) {
+                            System.out.println("entrei no if");
                             // Já foram recebidas todas as respostas
                             step = 2;
                         }
+
+                        System.out.println("Step:" + step);
                     }
                     else {
+                        System.out.println("Antes do block");
                         block();
-                        break;
                     }
                     break;
                 case 2:
+                    System.out.println("Antes do mundo");
+
                     // Chamar o paciente para o exame segundo a melhor oferta
                     ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                    order.addReceiver(maisUrgente);
+                    System.out.println("teste");
+                    //System.out.println(maisAntigo.toString());
+                    order.addReceiver(maisAntigo);
                     order.setContent(exame);
                     order.setConversationId("oferta-exame");
                     order.setReplyWith("order"+System.currentTimeMillis());
