@@ -2,12 +2,12 @@ package agents;
 
 import jade.core.Agent;
 import java.util.ArrayList;
-
 import hospital.*;
+import jade.domain.DFService;
+import jade.domain.FIPAAgentManagement.*;
+import jade.domain.FIPAException;
 
-/**
- * Created by andre on 27/11/2015.
- */
+
 public class PacienteAgent extends Agent {
     private float health;
     private ArrayList<Exame> exames;
@@ -37,12 +37,43 @@ public class PacienteAgent extends Agent {
 
         exames = new ArrayList<Exame>();
         System.out.println("Paciente "+ this.getAID().getName() + " with " + this.health + " health! And sequencial="+this.isSequencial);
+
+        DFAgentDescription dfd = new DFAgentDescription();
+        dfd.setName(getAID());
+        ServiceDescription sd = new ServiceDescription();
+        sd.setType("preciso-exame");
+        sd.setName("JADE-fazer-exame");
+        dfd.addServices(sd);
+        try {
+            DFService.register(this, dfd);
+        }
+        catch (FIPAException fe) {
+            fe.printStackTrace();
+        }
+
     }
 
     // Put agent clean-up operations here
     protected void takeDown() {
+        try {
+            DFService.deregister(this);
+        }
+        catch (FIPAException fe) {
+            fe.printStackTrace();
+        }
+
         // Printout a dismissal message
         System.out.println("Paciente-agent "+getAID().getName()+" terminating.");
+    }
+
+    protected void register( DFAgentDescription dfd )
+    {
+        try {
+            DFService.register(this, dfd );
+        }
+        catch (FIPAException fe) {
+            fe.printStackTrace();
+        }
     }
 
     /*

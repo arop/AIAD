@@ -1,8 +1,5 @@
 package hospital;
 
-/**
- * Created by andre on 27/11/2015.
- */
 public class Exame {
     private String nome;
     private float improvement; //quanto vai melhorar a Health do paciente
