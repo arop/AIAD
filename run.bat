@@ -1,0 +1,1 @@
+java -cp %JADE_PATH%;out/production/AIAD jade.Boot -agents drHouse:agents.RecursoAgent(raio-x);drHouse1:agents.RecursoAgent(raio-x);p1:agents.PacienteAgent;p2:agents.PacienteAgent -gui
