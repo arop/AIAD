@@ -1,8 +1,6 @@
 package agents;
 
-import agents.PacienteAgent;
 import jade.core.Agent;
-import jade.core.behaviours.WakerBehaviour;
 import java.util.ArrayList;
 import hospital.*;
 import jade.domain.DFService;
@@ -12,6 +10,7 @@ import jade.core.AID;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+//import jade.core.behaviours.WakerBehaviour;
 
 public class RecursoAgent extends Agent {
     private PacienteAgent currentPaciente;

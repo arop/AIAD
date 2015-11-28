@@ -6,6 +6,9 @@ import hospital.*;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
+import jade.core.behaviours.*;
+import jade.lang.acl.ACLMessage;
+import java.util.Random;
 
 
 public class PacienteAgent extends Agent {
@@ -51,7 +54,42 @@ public class PacienteAgent extends Agent {
             fe.printStackTrace();
         }
 
+        addBehaviour(new OfferRequestsServer());
+
+
     }
+
+    /**
+     Inner class OfferRequestsServer.
+     Este é o behaviour usado pelos pacientes para responder as "ofertas de exame" do hospital.
+     Se o exame que está disponível for um dos que o paciente necessita então este
+     responde com uma mensagem PROPOSE a especificar a sua urgência. Caso contrário é enviada de volta uma mensagem REFUSE .
+     */
+    private class OfferRequestsServer extends CyclicBehaviour {
+        public void action() {
+            ACLMessage msg = myAgent.receive();
+            if (msg != null) {
+                // Message received. Process it
+                String title = msg.getContent();
+                ACLMessage reply = msg.createReply();
+
+                Random r = new Random();
+                Integer urgencia = r.nextInt((1000 - 0) + 1);
+
+                if (urgencia != null) {
+                    // The requested book is available for sale. Reply with the price
+                    reply.setPerformative(ACLMessage.PROPOSE);
+                    reply.setContent(String.valueOf(urgencia.intValue()));
+                }
+                else {
+                    // The requested book is NOT available for sale.
+                    reply.setPerformative(ACLMessage.REFUSE);
+                    reply.setContent("nao-preciso-exame");
+                }
+                myAgent.send(reply);
+            }
+        }
+    } // End of inner class OfferRequestsServer
 
     // Put agent clean-up operations here
     protected void takeDown() {
