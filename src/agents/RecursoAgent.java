@@ -37,44 +37,43 @@ public class RecursoAgent extends Agent {
         if (args != null && args.length > 0) {
             for (int i = 0; i< args.length;i++) {
                 examesPossiveis.add(new Exame((String) args[i]));
-                System.out.println("Posso fazer o exame: " + examesPossiveis.get(i).getNome());
+                System.out.println("RECURSO ["+this.getName()+"] => Posso fazer o exame: " + examesPossiveis.get(i).getNome());
             }
 
             // Vai buscar todos os pacientes que precisam de um determinado exame
             // TODO É preciso mudar para informar isto só quando estiver available e não tipo ciclo.
-            if(currentExame == null)
-                addBehaviour(new TickerBehaviour(this, 10000) {
-                    protected void onTick() {
-                        for (int i = 0; i < examesPossiveis.size(); i++) {
-                            // De seguida é feito update da lista dos pacientes porque podem entrar pacientes a qq hora
-                            DFAgentDescription template = new DFAgentDescription();
-                            ServiceDescription sd = new ServiceDescription();
-                            sd.setType("preciso-exame-"+examesPossiveis.get(i).getNome());
-                            template.addServices(sd);
-                            try {
-                                // O hospital vai procurar todos os pacientes que "ofereçam um serviço" do tipo "preciso-exame"
-                                DFAgentDescription[] result = DFService.search(myAgent, template);
-                                pacientes = new AID[result.length];
-                                for (int j = 0; j < result.length; j++) {
-                                    pacientes[j] = result[j].getName();
-                                }
-                            }
-                            catch (FIPAException fe) {
-                                fe.printStackTrace();
+            addBehaviour(new TickerBehaviour(this, 10000) {
+                protected void onTick() {
+                    for (int i = 0; i < examesPossiveis.size(); i++) {
+                        // De seguida é feito update da lista dos pacientes porque podem entrar pacientes a qq hora
+                        DFAgentDescription template = new DFAgentDescription();
+                        ServiceDescription sd = new ServiceDescription();
+                        sd.setType("preciso-exame-"+examesPossiveis.get(i).getNome());
+                        template.addServices(sd);
+                        try {
+                            // O hospital vai procurar todos os pacientes que "ofereçam um serviço" do tipo "preciso-exame"
+                            DFAgentDescription[] result = DFService.search(myAgent, template);
+                            pacientes = new AID[result.length];
+                            for (int j = 0; j < result.length; j++) {
+                                pacientes[j] = result[j].getName();
                             }
                         }
-
-                        // Perform the request
-                        // apenas se alguem precisar dos exames que eu forneço
-                        if(pacientes.length > 0)
-                            myAgent.addBehaviour(new RequestPerformer());
+                        catch (FIPAException fe) {
+                            fe.printStackTrace();
+                        }
                     }
-                });
+
+                    // Perform the request
+                    // apenas se alguem precisar dos exames que eu forneço
+                    if(pacientes.length > 0)
+                        myAgent.addBehaviour(new RequestPerformer());
+                }
+            });
 
         }
         else {
             // Make the agent terminate
-            System.out.println("Não existe esse tipo de exame");
+            System.out.println("RECURSO ["+this.getName()+"] => Não existe esse tipo de exame");
             doDelete();
         }
     }
@@ -138,8 +137,7 @@ public class RecursoAgent extends Agent {
                                     break;
                                 }
 
-                                System.out.println(dataChegada);
-                                System.out.println("reposta com exame: " + resposta[1]);
+                                System.out.println("RECURSO ["+myAgent.getName()+"] => Reposta do paciente com exame: " + resposta[1]);
                             }catch(Exception e) {
                                 System.out.println(e.getMessage());
                             }
@@ -176,7 +174,7 @@ public class RecursoAgent extends Agent {
                     ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
                     //System.out.println(maisAntigo.toString());
                     order.addReceiver(maisAntigo);
-                    System.out.println("paciente exame: " + currentExame.toString());
+                    System.out.println("RECURSO ["+myAgent.getName()+"] => Vai dizer ao paciente que aceita fazer exame: " + currentExame.toString());
                     order.setContent(currentExame.toString());
                     order.setConversationId("oferta-exame");
                     order.setReplyWith("order"+System.currentTimeMillis());
@@ -191,11 +189,17 @@ public class RecursoAgent extends Agent {
                     reply = myAgent.receive(mt);
                     if (reply != null) {
                         // Purchase order reply received
-                        if (reply.getPerformative() == ACLMessage.INFORM) {
-                            // Purchase successful. We can terminate
-                            System.out.println(currentExame+" feito com sucesso.");
-                            System.out.println("Urgencia = "+maisUrgenteVal);
-                            myAgent.doDelete();
+                        if (reply.getPerformative() == ACLMessage.CONFIRM) {
+                            String exame = reply.getContent().split(":")[1];
+                            if(!currentExame.getNome().equals(exame))
+                                System.err.println("Exames do not match!! " + currentExame.toString() + " vs " + exame);
+
+                                //pacient accepted exame
+                            else {
+                                System.out.println("RECURSO ["+myAgent.getName()+"] => Vai bloquear " + currentExame.getTempo() + "ms");
+                                block((long) currentExame.getTempo());
+                                System.out.println("RECURSO ["+myAgent.getName()+"] => Ja fiz o exame, vou acordar!");
+                            }
                         }
                         step = 4;
                     }

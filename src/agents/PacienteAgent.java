@@ -37,15 +37,10 @@ public class PacienteAgent extends Agent {
             if (args != null && args.length > 0) {
                 health = Float.valueOf((String) args[0]);
                 isSequencial = Boolean.valueOf((String) args[1]);
-                System.out.println("antes do for");
 
                 for(int i = 2; i < args.length; i++){
-
                     exames.add(new Exame((String) args[i]));
                 }
-
-                System.out.println("exames size: " + exames.size());
-
             } else {
                 isSequencial = false;
                 health = 1;
@@ -107,7 +102,7 @@ public class PacienteAgent extends Agent {
                     String exame = msg.getContent();
                     ACLMessage reply = msg.createReply();
 
-                    System.out.println("vai fazer o exame: " + exame);
+                    System.out.println("PACIENTE ["+myAgent.getName()+"] => Recebe proposta de recurso para: " + exame);
 
                     Random r = new Random();
                     Integer urgencia = r.nextInt((1000 - 0) + 1);
@@ -123,11 +118,16 @@ public class PacienteAgent extends Agent {
                     }
                     myAgent.send(reply);
                 }
-
                 else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-                    System.out.println("Vou fazer o exame: ");
                     String exame = msg.getContent();
+                    System.out.println("PACIENTE ["+myAgent.getName()+"] => Recurso aceitou fazer: "+exame);
                     removeExame(new Exame(exame));
+
+                    ACLMessage reply = msg.createReply();
+                    reply.setPerformative(ACLMessage.CONFIRM);
+                    reply.setContent("entao vou fazer um:"+exame);
+                    myAgent.send(reply);
+
                     if(exames.isEmpty()) {
                         takeDown();
                     }
