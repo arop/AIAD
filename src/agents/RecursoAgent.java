@@ -134,6 +134,10 @@ public class RecursoAgent extends Agent {
                             try {
                                 resposta = reply.getContent().split("\n");
                                 dataChegada = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(resposta[0]);
+                                if(!examesPossiveis.contains(new Exame(resposta[1])) ){
+                                    break;
+                                }
+
                                 System.out.println(dataChegada);
                                 System.out.println("reposta com exame: " + resposta[1]);
                             }catch(Exception e) {

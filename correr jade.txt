@@ -1,7 +1,0 @@
-ESTANDO NA PASTA DOS .class:
-java jade.Boot -agents [nome:agent]
-
-ESTANDO NOUTRA
-java -cp %JADE_PATH%;[path to .class] jade.Boot -agents [nome:package.agent]
-java -cp %JADE_PATH%;out/production/[project] jade.Boot -agents [nome:package.agent]
-java -cp %JADE_PATH%;out/production/AIAD jade.Boot -agents [nome:package.agent]

@@ -19,10 +19,11 @@ import java.util.Random;
 
 public class PacienteAgent extends Agent {
     private float health;
-    private ArrayList<Exame> exames;
+    private ArrayList<Exame> exames = new ArrayList<Exame>();
     private boolean isSequencial; //true - exames tem que ser feitos por ordem
     private Date dataChegada = new Date();
     private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    private Behaviour existir;
 
     @Override
     protected void setup() {
@@ -36,6 +37,15 @@ public class PacienteAgent extends Agent {
             if (args != null && args.length > 0) {
                 health = Float.valueOf((String) args[0]);
                 isSequencial = Boolean.valueOf((String) args[1]);
+                System.out.println("antes do for");
+
+                for(int i = 2; i < args.length; i++){
+
+                    exames.add(new Exame((String) args[i]));
+                }
+
+                System.out.println("exames size: " + exames.size());
+
             } else {
                 isSequencial = false;
                 health = 1;
@@ -46,7 +56,6 @@ public class PacienteAgent extends Agent {
             doDelete();
         }
 
-        exames = new ArrayList<Exame>();
         System.out.println("Paciente "+ this.getAID().getName() + " with " + this.health + " health! And sequencial="+this.isSequencial);
 
         //TODO para ja o paciente precisa de todos os exames default
@@ -54,27 +63,32 @@ public class PacienteAgent extends Agent {
         //exames = Exame.getDefaultExames();
 
         //TODO existe apenas um exame para ja
-        exames.add(new Exame("raio-x"));
+        //exames.add(new Exame("raio-x"));
 
         // manda pedido para cada exame
+
+        DFAgentDescription dfd = new DFAgentDescription();
+        dfd.setName(getAID());
         // TODO mudar qd for para por pedidos sequenciais
         for (int i = 0; i < exames.size(); i++) {
-            DFAgentDescription dfd = new DFAgentDescription();
-            dfd.setName(getAID());
             ServiceDescription sd = new ServiceDescription();
             //sd.setType("preciso-exame");
-            sd.setType("preciso-exame-"+exames.get(i).getNome());
+            sd.setType("preciso-exame-" + exames.get(i).getNome());
             sd.setName("JADE-fazer-exame");
             dfd.addServices(sd);
-            try {
-                DFService.register(this, dfd);
-            }
-            catch (FIPAException fe) {
-                fe.printStackTrace();
-            }
         }
 
-        addBehaviour(new OfferRequestsServer());
+        try {
+            DFService.register(this, dfd);
+        }
+        catch (FIPAException fe) {
+            fe.printStackTrace();
+        }
+
+
+        existir = new OfferRequestsServer();
+        addBehaviour(existir);
+
     }
 
     /**
@@ -85,31 +99,43 @@ public class PacienteAgent extends Agent {
      */
     private class OfferRequestsServer extends CyclicBehaviour {
         public void action() {
-            ACLMessage msg = myAgent.receive();
+            ACLMessage msg = myAgent.blockingReceive();
             if (msg != null) {
-                // Message received. Process it
-                String exame = msg.getContent();
-                ACLMessage reply = msg.createReply();
+                if (msg.getPerformative() == ACLMessage.CFP) {
 
-                System.out.println("vai fazer o exame: " + exame);
+                    // Message received. Process it
+                    String exame = msg.getContent();
+                    ACLMessage reply = msg.createReply();
 
-                Random r = new Random();
-                Integer urgencia = r.nextInt((1000 - 0) + 1);
+                    System.out.println("vai fazer o exame: " + exame);
 
-                if (urgencia != null) {
-                    reply.setPerformative(ACLMessage.PROPOSE);
-                    //reply.setContent(String.valueOf(urgencia.intValue()));
-                    String resposta = dateFormat.format(dataChegada) + "\n" + getNextExam().getNome();
-                    reply.setContent(resposta);
+                    Random r = new Random();
+                    Integer urgencia = r.nextInt((1000 - 0) + 1);
+
+                    if (urgencia != null) {
+                        reply.setPerformative(ACLMessage.PROPOSE);
+                        //reply.setContent(String.valueOf(urgencia.intValue()));
+                        String resposta = dateFormat.format(dataChegada) + "\n" + getNextExam().getNome();
+                        reply.setContent(resposta);
+                    } else {
+                        reply.setPerformative(ACLMessage.REFUSE);
+                        reply.setContent("nao-preciso-exame");
+                    }
+                    myAgent.send(reply);
                 }
-                else {
-                    reply.setPerformative(ACLMessage.REFUSE);
-                    reply.setContent("nao-preciso-exame");
+
+                else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
+                    System.out.println("Vou fazer o exame: ");
+                    String exame = msg.getContent();
+                    removeExame(new Exame(exame));
+                    if(exames.isEmpty()) {
+                        takeDown();
+                    }
                 }
-                myAgent.send(reply);
             }
         }
     } // End of inner class OfferRequestsServer
+
 
     // Put agent clean-up operations here
     protected void takeDown() {

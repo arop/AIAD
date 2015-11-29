@@ -1,2 +1,0 @@
-# AIAD
-AIAD Repository

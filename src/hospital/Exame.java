@@ -88,6 +88,6 @@ public class Exame {
 
     @Override
     public String toString() {
-        return "Exame " + this.nome;
+        return this.nome;
     }
 }
