@@ -73,6 +73,10 @@ public class Exame {
         return uniqueID;
     }
 
+    public void setUniqueID(String uniqueID) {
+        this.uniqueID = uniqueID;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -82,10 +86,10 @@ public class Exame {
 
         if (Float.compare(exame.improvement, improvement) != 0) return false;
         if (Float.compare(exame.tempo, tempo) != 0) return false;
-        if (!uniqueID.equals(exame.uniqueID)) return false;
         return nome.equals(exame.nome);
 
     }
+
 
     @Override
     public int hashCode() {

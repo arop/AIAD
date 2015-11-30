@@ -110,7 +110,7 @@ public class PacienteAgent extends Agent {
                     if (urgencia != null) {
                         reply.setPerformative(ACLMessage.PROPOSE);
                         //reply.setContent(String.valueOf(urgencia.intValue()));
-                        String resposta = dateFormat.format(dataChegada) + "\n" + getNextExam().getNome();
+                        String resposta = dateFormat.format(dataChegada) + "\n" + getNextExam().getNome() + "\n" + getNextExam().getUniqueID();
                         reply.setContent(resposta);
                     } else {
                         reply.setPerformative(ACLMessage.REFUSE);
@@ -119,13 +119,15 @@ public class PacienteAgent extends Agent {
                     myAgent.send(reply);
                 }
                 else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-                    String exame = msg.getContent();
-                    System.out.println("PACIENTE ["+myAgent.getName()+"] => Recurso aceitou fazer: "+exame);
-                    removeExame(new Exame(exame));
+                    String[] exameSplit = msg.getContent().split("\n");
+                    System.out.println("PACIENTE ["+myAgent.getName()+"] => Recurso aceitou fazer: "+exameSplit[0]);
+                    Exame e = new Exame(exameSplit[0]);
+                    e.setUniqueID(exameSplit[1]);
+                    removeExame(e);
 
                     ACLMessage reply = msg.createReply();
                     reply.setPerformative(ACLMessage.CONFIRM);
-                    reply.setContent("entao vou fazer um:"+exame);
+                    reply.setContent("entao vou fazer um:"+exameSplit[0]);
                     myAgent.send(reply);
 
                     if(exames.isEmpty()) {
@@ -174,7 +176,16 @@ public class PacienteAgent extends Agent {
     }
 
     public void removeExame(Exame e) {
-        this.exames.remove(e);
+
+
+        for(Exame ex: this.exames){
+            if(ex.getUniqueID().equals(e.getUniqueID())) {
+                this.exames.remove(ex);
+                System.out.print("Exame a ser removido ... " + ex.getNome() + " " + ex.getUniqueID());
+                break;
+
+            }
+        }
     }
 
     public void removeFirstExame() { if(!this.exames.isEmpty()) this.exames.remove(0);}
