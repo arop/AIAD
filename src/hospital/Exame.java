@@ -1,24 +1,28 @@
 package hospital;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class Exame {
+    String uniqueID;
+
     private String nome;
     private float improvement; //quanto vai melhorar a Health do paciente
     private float tempo; //tempo que demora [em milissegundos]
-
     private static ArrayList<Exame> defaultExames = new ArrayList<Exame>();
 
     public Exame(String nome) {
         this.nome = nome;
         improvement = 0;
         tempo = 10000;
+        uniqueID = UUID.randomUUID().toString();
     }
 
     public Exame(String nome, float imp, float tempo) {
         this.nome = nome;
         this.improvement = imp;
         this.tempo = tempo;
+        uniqueID = UUID.randomUUID().toString();
     }
 
     // cria alguns exames
@@ -65,6 +69,10 @@ public class Exame {
         Exame.defaultExames = defaultExames;
     }
 
+    public String getUniqueID() {
+        return uniqueID;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -74,6 +82,7 @@ public class Exame {
 
         if (Float.compare(exame.improvement, improvement) != 0) return false;
         if (Float.compare(exame.tempo, tempo) != 0) return false;
+        if (!uniqueID.equals(exame.uniqueID)) return false;
         return nome.equals(exame.nome);
 
     }
