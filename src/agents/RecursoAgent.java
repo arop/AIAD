@@ -132,12 +132,15 @@ public class RecursoAgent extends Agent {
                             String[] resposta = new String[] {};
                             try {
                                 resposta = reply.getContent().split("\n");
+                                System.out.println("RECURSO ["+myAgent.getName()+"] => RESPOSTA: [0]=> " +resposta[0] + "[1]=> " + resposta[1]);
                                 dataChegada = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(resposta[0]);
+                                repliesCnt++;
                                 if(!examesPossiveis.contains(new Exame(resposta[1])) ){
+                                    System.out.println("RECURSO ["+myAgent.getName()+"] não faz " + resposta[1]);
                                     break;
                                 }
 
-                                System.out.println("RECURSO ["+myAgent.getName()+"] => Reposta do paciente com exame: " + resposta[1]);
+                                System.out.println("RECURSO ["+myAgent.getName()+"] => Resposta do paciente com exame: " + resposta[1]);
                             }catch(Exception e) {
                                 System.out.println(e.getMessage());
                             }
@@ -156,12 +159,15 @@ public class RecursoAgent extends Agent {
                                 maisAntigo = reply.getSender();
                                 currentExame = new Exame(resposta[1]);
                             }
-
                         }
-                        repliesCnt++;
+
+                        //repliesCn++t;
+                        System.out.println("Repply count: " + Integer.toString(repliesCnt));
+                        System.out.println("Numero Total de pacientes: " + Integer.toString(pacientes.length));
 
                         if (repliesCnt >= pacientes.length) {
                             // Já foram recebidas todas as respostas
+                            System.out.println("RECURSO: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(pacientes.length) );
                             step = 2;
                         }
                     }
@@ -175,7 +181,7 @@ public class RecursoAgent extends Agent {
                     //System.out.println(maisAntigo.toString());
                     order.addReceiver(maisAntigo);
                     System.out.println("RECURSO ["+myAgent.getName()+"] => Vai dizer ao paciente que aceita fazer exame: " + currentExame.toString());
-                    order.setContent(currentExame.toString());
+                    order.setContent(currentExame.toString()+"\n"+currentExame.getUniqueID());
                     order.setConversationId("oferta-exame");
                     order.setReplyWith("order"+System.currentTimeMillis());
                     myAgent.send(order);
