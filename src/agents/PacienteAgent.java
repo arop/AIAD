@@ -1,6 +1,5 @@
 package agents;
 
-import FIPA.DateTime;
 import jade.core.Agent;
 
 import java.text.DateFormat;
@@ -12,10 +11,9 @@ import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
+import utils.Utilities;
 
 import java.util.Date;
-import java.util.Random;
-
 
 public class PacienteAgent extends Agent {
     private float health;
@@ -57,11 +55,7 @@ public class PacienteAgent extends Agent {
         //Exame.initDefaultExames();
         //exames = Exame.getDefaultExames();
 
-        //TODO existe apenas um exame para ja
-        //exames.add(new Exame("raio-x"));
-
         // manda pedido para cada exame
-
         DFAgentDescription dfd = new DFAgentDescription();
         dfd.setName(getAID());
         // TODO mudar qd for para por pedidos sequenciais
@@ -83,7 +77,6 @@ public class PacienteAgent extends Agent {
 
         existir = new OfferRequestsServer();
         addBehaviour(existir);
-
     }
 
     /**
@@ -104,20 +97,15 @@ public class PacienteAgent extends Agent {
 
                     System.out.println("PACIENTE ["+myAgent.getName()+"] => Recebe proposta de recurso para: " + exame);
 
-                    Random r = new Random();
-                    Integer urgencia = r.nextInt((1000 - 0) + 1);
+                    reply.setPerformative(ACLMessage.PROPOSE);
+                    String resposta;
+                    if (Utilities.FIRST_COME_FIRST_SERVE)
+                        resposta = dateFormat.format(dataChegada) + "\n" + getNextExam().getNome();
+                    else resposta = String.valueOf(utilityFunction(new Exame(exame))) + "\n" + getNextExam().getNome();
 
-                    if (urgencia != null) {
-                        reply.setPerformative(ACLMessage.PROPOSE);
-                        //reply.setContent(String.valueOf(urgencia.intValue()));
-                        String resposta = dateFormat.format(dataChegada) + "\n" + getNextExam().getNome() + "\n" + getNextExam().getUniqueID();
-                        reply.setContent(resposta);
-                        System.out.println("PACIENTE ["+myAgent.getName()+"] =>  Envia proposta c/: " + resposta);
-                    } else {
-                        reply.setPerformative(ACLMessage.REFUSE);
-                        reply.setContent("nao-preciso-exame");
-                        System.out.println("PACIENTE ["+myAgent.getName()+"] => Envia REFUSE : ");
-                    }
+                    reply.setContent(resposta);
+                    System.out.println("PACIENTE ["+myAgent.getName()+"] =>  Envia proposta c/: " + resposta);
+
                     myAgent.send(reply);
                 }
                 else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
@@ -155,6 +143,25 @@ public class PacienteAgent extends Agent {
 
         // Printout a dismissal message
         System.out.println("Paciente-agent "+getAID().getName()+" terminating.");
+    }
+
+    public double utilityFunction(Exame exameToDo) {
+        double value = 0;
+        Date now = new Date();
+        double elapsedTime = (now.getTime() - dataChegada.getTime()) / 1000.0; //in seconds
+
+        // f(t) = at + (b/2)t^2; a = z - s
+        // a: severidade, z: saude atingivel, s: saude inicial, b: taxa decrescimo
+
+        double b = Utilities.DECREASE_RATE;
+
+        double z = exameToDo.getImprovement();
+
+        double a = z - this.getHealth();
+
+        value = a*elapsedTime + (b/2.0) * Math.pow(elapsedTime,2);
+
+        return value;
     }
 
     /*
@@ -211,6 +218,5 @@ public class PacienteAgent extends Agent {
     public Exame getNextExam() {
         return exames.get(0);
     }
-
 
 }

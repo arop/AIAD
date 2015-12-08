@@ -14,7 +14,7 @@ import jade.core.AID;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-//import jade.core.behaviours.WakerBehaviour;
+import utils.Utilities;
 
 public class RecursoAgent extends Agent {
     private PacienteAgent currentPaciente;
@@ -44,11 +44,11 @@ public class RecursoAgent extends Agent {
             // TODO É preciso mudar para informar isto só quando estiver available e não tipo ciclo.
             addBehaviour(new TickerBehaviour(this, 10000) {
                 protected void onTick() {
-                    for (int i = 0; i < examesPossiveis.size(); i++) {
+                    for (Exame e : examesPossiveis) {
                         // De seguida é feito update da lista dos pacientes porque podem entrar pacientes a qq hora
                         DFAgentDescription template = new DFAgentDescription();
                         ServiceDescription sd = new ServiceDescription();
-                        sd.setType("preciso-exame-"+examesPossiveis.get(i).getNome());
+                        sd.setType("preciso-exame-" + e.getNome());
                         template.addServices(sd);
                         try {
                             // O hospital vai procurar todos os pacientes que "ofereçam um serviço" do tipo "preciso-exame"
@@ -57,8 +57,7 @@ public class RecursoAgent extends Agent {
                             for (int j = 0; j < result.length; j++) {
                                 pacientes[j] = result[j].getName();
                             }
-                        }
-                        catch (FIPAException fe) {
+                        } catch (FIPAException fe) {
                             fe.printStackTrace();
                         }
                     }
@@ -92,7 +91,7 @@ public class RecursoAgent extends Agent {
 
     private class RequestPerformer extends Behaviour {
         private AID maisUrgente; // O agente paciente que faz a bid mais alta (ie que tem mais urgência)
-        private int maisUrgenteVal; // O valor da maior oferta
+        private double maisUrgenteVal; // O valor da maior oferta
         private int repliesCnt = 0; // O número de respostas de pacientes
         private MessageTemplate mt; // O template para receber respostas
         private int step = 0;
@@ -102,18 +101,17 @@ public class RecursoAgent extends Agent {
         public void action() {
             switch (step) {
                 case 0:
-                    for (int i = 0; i < examesPossiveis.size(); i++) {
+                    for (Exame e : examesPossiveis) {
                         // Mandar um cfp a todos os pacientes
                         ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
-                        for (int j = 0; j < pacientes.length; j++) {
-                            cfp.addReceiver(pacientes[j]);
+                        for (AID paciente : pacientes) {
+                            cfp.addReceiver(paciente);
                         }
-                        cfp.setContent(examesPossiveis.get(i).getNome());
+                        cfp.setContent(e.getNome());
                         cfp.setConversationId("oferta-exame");
                         cfp.setReplyWith("cfp" + System.currentTimeMillis()); // Unique value
                         myAgent.send(cfp);
                         // Prepare the template to get proposals
-                        //TODO n sei mudar isto
                         mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
                                 MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
                     }
@@ -125,15 +123,18 @@ public class RecursoAgent extends Agent {
                     if (reply != null) {
                         // Recebeu resposta
                         if (reply.getPerformative() == ACLMessage.PROPOSE) {
-                            // Isto é uma bid
-                            //int urgencia = Integer.parseInt(reply.getContent());
+                            double urgencia = 0;
 
                             Date dataChegada = new Date();
                             String[] resposta = new String[] {};
                             try {
                                 resposta = reply.getContent().split("\n");
                                 System.out.println("RECURSO ["+myAgent.getName()+"] => RESPOSTA: [0]=> " +resposta[0] + "[1]=> " + resposta[1]);
-                                dataChegada = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(resposta[0]);
+
+                                if(Utilities.FIRST_COME_FIRST_SERVE)
+                                    dataChegada = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(resposta[0]);
+                                else urgencia = Double.parseDouble(resposta[0]);
+
                                 repliesCnt++;
                                 if(!examesPossiveis.contains(new Exame(resposta[1])) ){
                                     System.out.println("RECURSO ["+myAgent.getName()+"] não faz " + resposta[1]);
@@ -145,19 +146,22 @@ public class RecursoAgent extends Agent {
                                 System.out.println(e.getMessage());
                             }
 
-                            /*// Escolhe o mais urgente
-                            if (maisUrgente == null || urgencia > maisUrgenteVal) {
-                                //Escolhe a melhor "oferta", isto é o paciente mais urgente
-                                maisUrgenteVal = urgencia;
-                                maisUrgente = reply.getSender();
-                            }*/
-
-
-                            // Escolhe o 1º que chegou - mais antigo
-                            if (maisAntigo == null || !dataChegada.before(maisAntigoVal)) {
-                                maisAntigoVal = dataChegada;
-                                maisAntigo = reply.getSender();
-                                currentExame = new Exame(resposta[1]);
+                            if(Utilities.FIRST_COME_FIRST_SERVE) {
+                                // Escolhe o 1º que chegou - mais antigo
+                                if (maisAntigo == null || !dataChegada.before(maisAntigoVal)) {
+                                    maisAntigoVal = dataChegada;
+                                    maisAntigo = reply.getSender();
+                                    currentExame = new Exame(resposta[1]);
+                                }
+                            }
+                            else {
+                                // Escolhe o mais urgente
+                                if (maisUrgente == null || urgencia > maisUrgenteVal) {
+                                    //Escolhe a melhor "oferta", isto é o paciente mais urgente
+                                    maisUrgenteVal = urgencia;
+                                    maisUrgente = reply.getSender();
+                                    currentExame = new Exame(resposta[1]);
+                                }
                             }
                         }
 
@@ -178,8 +182,11 @@ public class RecursoAgent extends Agent {
                 case 2:
                     // Chamar o paciente para o exame segundo a melhor oferta
                     ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-                    //System.out.println(maisAntigo.toString());
-                    order.addReceiver(maisAntigo);
+
+                    if(Utilities.FIRST_COME_FIRST_SERVE)
+                        order.addReceiver(maisAntigo);
+                    else order.addReceiver(maisUrgente);
+
                     System.out.println("RECURSO ["+myAgent.getName()+"] => Vai dizer ao paciente que aceita fazer exame: " + currentExame.toString());
                     order.setContent(currentExame.toString()+"\n"+currentExame.getUniqueID());
                     order.setConversationId("oferta-exame");
@@ -200,8 +207,8 @@ public class RecursoAgent extends Agent {
                             if(!currentExame.getNome().equals(exame))
                                 System.err.println("Exames do not match!! " + currentExame.toString() + " vs " + exame);
 
-                                //pacient accepted exame
-                            else {
+                            else {//pacient accepted exame
+                                // recurso agents, blocks while performing the exam
                                 System.out.println("RECURSO ["+myAgent.getName()+"] => Vai bloquear " + currentExame.getTempo() + "ms");
                                 block((long) currentExame.getTempo());
                                 System.out.println("RECURSO ["+myAgent.getName()+"] => Ja fiz o exame, vou acordar!");
@@ -218,7 +225,7 @@ public class RecursoAgent extends Agent {
         public boolean done() {
             return ((step == 2 && (maisUrgente == null && maisAntigo == null)) || step == 4);
         }
-    } // End of inner class RequestPerformer*/
+    }
 
     //addBehaviour(new OfferRequestsServer());
 

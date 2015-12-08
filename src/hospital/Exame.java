@@ -9,7 +9,6 @@ public class Exame {
     private String nome;
     private float improvement; //quanto vai melhorar a Health do paciente
     private float tempo; //tempo que demora [em milissegundos]
-    private static ArrayList<Exame> defaultExames = new ArrayList<Exame>();
 
     public Exame(String nome) {
         this.nome = nome;
@@ -23,14 +22,6 @@ public class Exame {
         this.improvement = imp;
         this.tempo = tempo;
         uniqueID = UUID.randomUUID().toString();
-    }
-
-    // cria alguns exames
-    public static void initDefaultExames() {
-        defaultExames.add(new Exame("raio-x",0,10000));
-        defaultExames.add(new Exame("ecografia",0,30000));
-        defaultExames.add(new Exame("radiografia",0,15000));
-        defaultExames.add(new Exame("tac",0,30000));
     }
 
     /*
@@ -61,14 +52,6 @@ public class Exame {
 
     }
 
-    public static ArrayList<Exame> getDefaultExames() {
-        return defaultExames;
-    }
-
-    public static void setDefaultExames(ArrayList<Exame> defaultExames) {
-        Exame.defaultExames = defaultExames;
-    }
-
     public String getUniqueID() {
         return uniqueID;
     }
@@ -89,7 +72,6 @@ public class Exame {
         return nome.equals(exame.nome);
 
     }
-
 
     @Override
     public int hashCode() {
