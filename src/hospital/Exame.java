@@ -1,19 +1,32 @@
 package hospital;
 
-import java.util.ArrayList;
+import utils.Utilities;
+
 import java.util.UUID;
 
+/**
+ * Classe Exame, correspondendo a um exame/tratamento que um paciente quer fazer
+ * Contem um nome, um "improvement" que nos diz quanto ira variar a saude do paciente com este exame
+ * e um tempo - o tempo que demora o exame.
+ */
 public class Exame {
     String uniqueID;
 
     private String nome;
-    private float improvement; //quanto vai melhorar a Health do paciente
-    private float tempo; //tempo que demora [em milissegundos]
+    private float improvement = 0; //quanto vai melhorar a Health do paciente
+    private float tempo = 0; //tempo que demora [em milissegundos]
 
     public Exame(String nome) {
         this.nome = nome;
-        improvement = 0;
-        tempo = 10000;
+
+        for (Exame e: Utilities.defaultExames) {
+            if(e.getNome().equals(nome)) {
+                improvement = e.getImprovement();
+                tempo = e.getTempo();
+                break;
+            }
+        }
+
         uniqueID = UUID.randomUUID().toString();
     }
 

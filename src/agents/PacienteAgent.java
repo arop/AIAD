@@ -51,10 +51,6 @@ public class PacienteAgent extends Agent {
 
         System.out.println("Paciente "+ this.getAID().getName() + " with " + this.health + " health! And sequencial="+this.isSequencial);
 
-        //TODO para ja o paciente precisa de todos os exames default
-        //Exame.initDefaultExames();
-        //exames = Exame.getDefaultExames();
-
         // manda pedido para cada exame
         DFAgentDescription dfd = new DFAgentDescription();
         dfd.setName(getAID());
@@ -74,7 +70,6 @@ public class PacienteAgent extends Agent {
             fe.printStackTrace();
         }
 
-
         existir = new OfferRequestsServer();
         addBehaviour(existir);
     }
@@ -93,15 +88,17 @@ public class PacienteAgent extends Agent {
 
                     // Message received. Process it
                     String exame = msg.getContent();
+                    Exame e = new Exame(exame);
                     ACLMessage reply = msg.createReply();
 
                     System.out.println("PACIENTE ["+myAgent.getName()+"] => Recebe proposta de recurso para: " + exame);
 
                     reply.setPerformative(ACLMessage.PROPOSE);
                     String resposta;
+                    //TODO mudar para qd for sequencial
                     if (Utilities.FIRST_COME_FIRST_SERVE)
-                        resposta = dateFormat.format(dataChegada) + "\n" + getNextExam().getNome();
-                    else resposta = String.valueOf(utilityFunction(new Exame(exame))) + "\n" + getNextExam().getNome();
+                        resposta = dateFormat.format(dataChegada) + "\n" + e.getNome();
+                    else resposta = String.valueOf(utilityFunction(e)) + "\n" + e.getNome();
 
                     reply.setContent(resposta);
                     System.out.println("PACIENTE ["+myAgent.getName()+"] =>  Envia proposta c/: " + resposta);
@@ -146,7 +143,7 @@ public class PacienteAgent extends Agent {
     }
 
     public double utilityFunction(Exame exameToDo) {
-        double value = 0;
+        double value;
         Date now = new Date();
         double elapsedTime = (now.getTime() - dataChegada.getTime()) / 1000.0; //in seconds
 
