@@ -11,8 +11,10 @@ import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAException;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
+import utils.DynamicList;
 import utils.Utilities;
 
+import javax.swing.*;
 import java.util.Date;
 
 import static java.lang.Thread.sleep;
@@ -25,6 +27,8 @@ public class PacienteAgent extends Agent {
     private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     private Behaviour existir;
 
+    DynamicList List;
+
     private String pacienteName;
 
     @Override
@@ -34,6 +38,14 @@ public class PacienteAgent extends Agent {
         System.out.println("Usage: Paciente(health=1,isSequencial=false,[exames]+)");
 
         pacienteName = this.getName().split("@")[0];
+
+        //Criacao da GUI
+        List = new DynamicList();
+        JFrame frame = new JFrame(pacienteName);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setContentPane(List);
+        frame.setSize(520, 400);
+        frame.setVisible(true);
 
         try {
             // Get the title of the book to buy as a start-up argument
@@ -120,17 +132,26 @@ public class PacienteAgent extends Agent {
                         System.out.println("Definicoes do exame: " + e.getNome() + " ID MAL: " + e.getUniqueID());
                         e.setUniqueID(exameSplit[1]);
                         System.out.println(" ID UPDATED: " + e.getUniqueID());
+                        List.addMessage(e.getNome(),String.valueOf(e.getTempo()), new Date().toString());
                         removeExame(e);
 
                         ACLMessage reply = msg.createReply();
                         reply.setPerformative(ACLMessage.CONFIRM);
                         reply.setContent("entao vou fazer um:" + exameSplit[0]);
+
                         myAgent.send(reply);
+
 
                         // bloqueia durante o exame, para nao aceitar outras propostas
                         System.out.println("PACIENTE ["+pacienteName+"] => Confirmou fazer o exame e vai bloquear "+e.getTempo()+"ms");
                         //TODO block nao funciona, pq desbloqueia ao receber uma msg
-                        block((long) e.getTempo());
+                        try {
+                            Thread.sleep((long)e.getTempo());
+                        }
+                        catch (InterruptedException ex){
+                            System.out.println("EXCECAO SLEEP LANCADA");
+                            System.out.println(ex.getMessage());
+                        }
                         System.out.println("PACIENTE ["+pacienteName+"] => Acordei! Viva AIAD!");
                     }
                     else {

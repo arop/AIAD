@@ -14,6 +14,7 @@ import jade.core.AID;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import utils.DynamicList;
 import utils.Utilities;
 
 import static java.lang.Thread.sleep;
@@ -26,6 +27,7 @@ public class RecursoAgent extends Agent {
     private AID[] pacientes;
 
     private String recursoName;
+    private DynamicList List;
 
     private boolean available = true;
 
@@ -37,6 +39,8 @@ public class RecursoAgent extends Agent {
         System.out.println("Usage: Recurso([String nome_do_exame]+)");
 
         recursoName = this.getName().split("@")[0];
+
+
 
         examesPossiveis = new ArrayList<Exame>();
 
@@ -222,6 +226,7 @@ public class RecursoAgent extends Agent {
 
                                 else {//pacient accepted exame
                                     // recurso agents, blocks while performing the exam
+
                                     System.out.println("RECURSO ["+recursoName+"] => Vai bloquear " + currentExame.getTempo() + "ms");
                                     //TODO block nao funciona, pq desbloqueia ao receber uma msg
                                     block((long) currentExame.getTempo());
