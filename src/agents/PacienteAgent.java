@@ -127,12 +127,12 @@ public class PacienteAgent extends Agent {
                     String[] exameSplit = msg.getContent().split("\n");
                     System.out.println("PACIENTE ["+pacienteName+"] => Recurso aceitou fazer: "+exameSplit[0]);
                     if(exames.contains(new Exame(exameSplit[0]))) {
-                        System.out.println("PACIENTE [" + pacienteName + "] => RESPOSTA: [0]=>" + exameSplit[0] + " [1]=>" + exameSplit[1]);
                         Exame e = new Exame(exameSplit[0]);
+                        List.addMessage(e.getNome(),String.valueOf(e.getTempo()), new Date().toString());
+                        System.out.println("PACIENTE [" + pacienteName + "] => RESPOSTA: [0]=>" + exameSplit[0] + " [1]=>" + exameSplit[1]);
                         System.out.println("Definicoes do exame: " + e.getNome() + " ID MAL: " + e.getUniqueID());
                         e.setUniqueID(exameSplit[1]);
                         System.out.println(" ID UPDATED: " + e.getUniqueID());
-                        List.addMessage(e.getNome(),String.valueOf(e.getTempo()), new Date().toString());
                         removeExame(e);
 
                         ACLMessage reply = msg.createReply();
