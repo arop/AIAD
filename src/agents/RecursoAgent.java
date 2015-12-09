@@ -242,7 +242,7 @@ public class RecursoAgent extends Agent {
                         System.out.println("RECURSO ["+recursoName+"] => Vai dizer ao paciente [" + maisUrgente.getName().split("@")[0] + "] que aceita fazer exame: " + currentExame.toString());
                     }
 
-                    order.setContent(currentExame.toString()+"\n"+currentExame.getUniqueID());
+                    order.setContent(currentExame.toString());
                     order.setConversationId("oferta-exame");
                     order.setReplyWith("order"+System.currentTimeMillis());
                     myAgent.send(order);
@@ -265,19 +265,17 @@ public class RecursoAgent extends Agent {
                             else {//pacient accepted exame
                                 // recurso agents, blocks while performing the exam
                                 System.out.println("RECURSO ["+recursoName+"] => Vai bloquear " + currentExame.getTempo() + "ms");
-                                //TODO block nao funciona, pq desbloqueia ao receber uma msg
-                                //block((long) currentExame.getTempo());
                                 available = false;
                                 start = System.nanoTime();
                             }
                             step = 4;
                         } else if(reply.getPerformative() == ACLMessage.REFUSE) {
+                            // pacient is occupied
                             step = 4;
                         }
 
                     }
                     else block();
-
                     break;
             }
         }
