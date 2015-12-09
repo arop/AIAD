@@ -15,7 +15,10 @@ import jade.core.AID;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import utils.DynamicList;
 import utils.Utilities;
+
+import javax.swing.*;
 
 import static java.lang.Thread.sleep;
 
@@ -26,6 +29,7 @@ public class RecursoAgent extends Agent {
     private AID[] pacientes;
 
     private String recursoName;
+    private DynamicList List;
 
     private boolean available = true;
     private AID ultimoPaciente;
@@ -40,6 +44,14 @@ public class RecursoAgent extends Agent {
         System.out.println("Usage: Recurso([String nome_do_exame]+)");
 
         recursoName = this.getName().split("@")[0];
+
+        //Criacao da GUI
+        List = new DynamicList();
+        JFrame frame = new JFrame(recursoName);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setContentPane(List);
+        frame.setSize(300, 250);
+        frame.setVisible(true);
 
         examesPossiveis = new ArrayList<Exame>();
 
@@ -132,7 +144,6 @@ public class RecursoAgent extends Agent {
         private int step = 0;
         private Date maisAntigoVal;
         private AID maisAntigo;
-
 
         public void action() {
             switch (step) {
@@ -231,7 +242,7 @@ public class RecursoAgent extends Agent {
                         System.out.println("RECURSO ["+recursoName+"] => Vai dizer ao paciente [" + maisUrgente.getName().split("@")[0] + "] que aceita fazer exame: " + currentExame.toString());
                     }
 
-                    order.setContent(currentExame.toString()+"\n"+currentExame.getUniqueID());
+                    order.setContent(currentExame.toString());
                     order.setConversationId("oferta-exame");
                     order.setReplyWith("order"+System.currentTimeMillis());
                     myAgent.send(order);
@@ -254,19 +265,17 @@ public class RecursoAgent extends Agent {
                             else {//pacient accepted exame
                                 // recurso agents, blocks while performing the exam
                                 System.out.println("RECURSO ["+recursoName+"] => Vai bloquear " + currentExame.getTempo() + "ms");
-                                //TODO block nao funciona, pq desbloqueia ao receber uma msg
-                                //block((long) currentExame.getTempo());
                                 available = false;
                                 start = System.nanoTime();
                             }
                             step = 4;
                         } else if(reply.getPerformative() == ACLMessage.REFUSE) {
+                            // pacient is occupied
                             step = 4;
                         }
 
                     }
                     else block();
-
                     break;
             }
         }

@@ -2,16 +2,12 @@ package hospital;
 
 import utils.Utilities;
 
-import java.util.UUID;
-
 /**
  * Classe Exame, correspondendo a um exame/tratamento que um paciente quer fazer
  * Contem um nome, um "improvement" que nos diz quanto ira variar a saude do paciente com este exame
  * e um tempo - o tempo que demora o exame.
  */
 public class Exame {
-    String uniqueID;
-
     private String nome;
     private float improvement = 0; //quanto vai melhorar a Health do paciente
     private float tempo = 0; //tempo que demora [em milissegundos]
@@ -26,15 +22,12 @@ public class Exame {
                 break;
             }
         }
-
-        uniqueID = UUID.randomUUID().toString();
     }
 
     public Exame(String nome, float imp, float tempo) {
         this.nome = nome;
         this.improvement = imp;
         this.tempo = tempo;
-        uniqueID = UUID.randomUUID().toString();
     }
 
     /*
@@ -63,14 +56,6 @@ public class Exame {
     public void setNome(String nome) {
         this.nome = nome;
 
-    }
-
-    public String getUniqueID() {
-        return uniqueID;
-    }
-
-    public void setUniqueID(String uniqueID) {
-        this.uniqueID = uniqueID;
     }
 
     @Override
