@@ -16,6 +16,8 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import utils.Utilities;
 
+import static java.lang.Thread.sleep;
+
 public class RecursoAgent extends Agent {
     private PacienteAgent currentPaciente;
     private Exame currentExame;
@@ -23,12 +25,18 @@ public class RecursoAgent extends Agent {
 
     private AID[] pacientes;
 
+    private String recursoName;
+
+    private boolean available = true;
+
     @Override
     protected void setup() {
         super.setup();
 
         System.out.println("RecursoAgent.setup");
-        System.out.println("Usage: Recurso([String nome_do_exame]*)");
+        System.out.println("Usage: Recurso([String nome_do_exame]+)");
+
+        recursoName = this.getName().split("@")[0];
 
         examesPossiveis = new ArrayList<Exame>();
 
@@ -37,7 +45,7 @@ public class RecursoAgent extends Agent {
         if (args != null && args.length > 0) {
             for (int i = 0; i< args.length;i++) {
                 examesPossiveis.add(new Exame((String) args[i]));
-                System.out.println("RECURSO ["+this.getName()+"] => Posso fazer o exame: " + examesPossiveis.get(i).getNome());
+                System.out.println("RECURSO ["+recursoName+"] => Posso fazer o exame: " + examesPossiveis.get(i).getNome());
             }
 
             // Vai buscar todos os pacientes que precisam de um determinado exame
@@ -72,7 +80,7 @@ public class RecursoAgent extends Agent {
         }
         else {
             // Make the agent terminate
-            System.out.println("RECURSO ["+this.getName()+"] => Não existe esse tipo de exame");
+            System.out.println("RECURSO ["+recursoName+"] => Não existe esse tipo de exame");
             doDelete();
         }
     }
@@ -86,7 +94,7 @@ public class RecursoAgent extends Agent {
             fe.printStackTrace();
         }
 
-        System.out.println("Recurso-agent "+getAID().getName()+" terminating.");
+        System.out.println("Recurso-agent "+recursoName+" terminating.");
     }
 
     private class RequestPerformer extends Behaviour {
@@ -99,149 +107,145 @@ public class RecursoAgent extends Agent {
         private AID maisAntigo;
 
         public void action() {
-            switch (step) {
-                case 0:
-                    for (Exame e : examesPossiveis) {
-                        // Mandar um cfp a todos os pacientes
-                        ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
-                        for (AID paciente : pacientes) {
-                            cfp.addReceiver(paciente);
+            if(isAvailable())
+                switch (step) {
+                    case 0:
+                        for (Exame e : examesPossiveis) {
+                            // Mandar um cfp a todos os pacientes
+                            ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
+                            for (AID paciente : pacientes) {
+                                cfp.addReceiver(paciente);
+                            }
+                            cfp.setContent(e.getNome());
+                            cfp.setConversationId("oferta-exame");
+                            cfp.setReplyWith("cfp" + System.currentTimeMillis()); // Unique value
+                            myAgent.send(cfp);
+                            // Prepare the template to get proposals
+                            mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
+                                    MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
                         }
-                        cfp.setContent(e.getNome());
-                        cfp.setConversationId("oferta-exame");
-                        cfp.setReplyWith("cfp" + System.currentTimeMillis()); // Unique value
-                        myAgent.send(cfp);
-                        // Prepare the template to get proposals
+                        step = 1;
+                        break;
+                    case 1:
+                        // Recebe de todos os seus pacientes a sua urgencia/data de inicio
+                        ACLMessage reply = myAgent.receive(mt);
+                        if (reply != null) {
+                            // Recebeu resposta
+                            if (reply.getPerformative() == ACLMessage.PROPOSE) {
+                                double urgencia = 0;
+
+                                Date dataChegada = new Date();
+                                String[] resposta = new String[] {};
+                                try {
+                                    resposta = reply.getContent().split("\n");
+                                    System.out.println("RECURSO ["+recursoName+"] => RESPOSTA: [0]=> " +resposta[0] + "[1]=> " + resposta[1]);
+
+                                    if(Utilities.FIRST_COME_FIRST_SERVE)
+                                        dataChegada = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(resposta[0]);
+                                    else urgencia = Double.parseDouble(resposta[0]);
+
+                                    if(!examesPossiveis.contains(new Exame(resposta[1])) ){
+                                        System.out.println("RECURSO ["+recursoName+"] não faz " + resposta[1]);
+                                        break;
+                                    }
+                                    repliesCnt++;
+
+                                    System.out.println("RECURSO ["+recursoName+"] => Resposta do paciente com exame: " + resposta[1]);
+                                }catch(Exception e) {
+                                    System.out.println(e.getMessage());
+                                }
+
+                                if(Utilities.FIRST_COME_FIRST_SERVE) {
+                                    // Escolhe o 1º que chegou - mais antigo
+                                    if (maisAntigo == null || !dataChegada.before(maisAntigoVal)) {
+                                        maisAntigoVal = dataChegada;
+                                        maisAntigo = reply.getSender();
+                                        currentExame = new Exame(resposta[1]);
+                                    }
+                                }
+                                else {
+                                    // Escolhe o mais urgente
+                                    if (maisUrgente == null || urgencia > maisUrgenteVal) {
+                                        //Escolhe a melhor "oferta", isto é o paciente mais urgente
+                                        maisUrgenteVal = urgencia;
+                                        maisUrgente = reply.getSender();
+                                        currentExame = new Exame(resposta[1]);
+                                    }
+                                }
+                            }
+
+                            //repliesCn++t;
+                            System.out.println("Reply count: " + Integer.toString(repliesCnt));
+                            System.out.println("Numero Total de pacientes: " + Integer.toString(pacientes.length));
+
+                            if (repliesCnt >= pacientes.length) {
+                                // Já foram recebidas todas as respostas
+                                System.out.println("RECURSO: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(pacientes.length) );
+                                step = 2;
+                            }
+                        }
+                        else {
+                            block();
+                        }
+                        break;
+                    case 2:
+                        // Chamar o paciente para o exame segundo a melhor oferta
+                        ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
+
+                        if(Utilities.FIRST_COME_FIRST_SERVE) {
+                            order.addReceiver(maisAntigo);
+                            System.out.println("RECURSO [" + recursoName + "] => Vai dizer ao paciente [" + maisAntigo.getName().split("@")[0] + "] que aceita fazer exame: " + currentExame.toString());
+                        }
+                        else {
+                            order.addReceiver(maisUrgente);
+                            System.out.println("RECURSO ["+recursoName+"] => Vai dizer ao paciente [" + maisUrgente.getName().split("@")[0] + "] que aceita fazer exame: " + currentExame.toString());
+                        }
+
+                        order.setContent(currentExame.toString()+"\n"+currentExame.getUniqueID());
+                        order.setConversationId("oferta-exame");
+                        order.setReplyWith("order"+System.currentTimeMillis());
+                        myAgent.send(order);
+                        // Prepare the template to get the purchase order reply
                         mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
-                                MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
-                    }
-                    step = 1;
-                    break;
-                case 1:
-                    // Recebe de todos os seus pacientes a sua urgencia/data de inicio
-                    ACLMessage reply = myAgent.receive(mt);
-                    if (reply != null) {
-                        // Recebeu resposta
-                        if (reply.getPerformative() == ACLMessage.PROPOSE) {
-                            double urgencia = 0;
+                                MessageTemplate.MatchInReplyTo(order.getReplyWith()));
+                        step = 3;
+                        break;
+                    case 3:
+                        // Receber a resposta ao chamamento
+                        reply = myAgent.receive(mt);
+                        if (reply != null) {
+                            // Purchase order reply received
+                            if (reply.getPerformative() == ACLMessage.CONFIRM) {
+                                String exame = reply.getContent().split(":")[1];
+                                if(!currentExame.getNome().equals(exame))
+                                    System.err.println("Exames do not match!! " + currentExame.toString() + " vs " + exame);
 
-                            Date dataChegada = new Date();
-                            String[] resposta = new String[] {};
-                            try {
-                                resposta = reply.getContent().split("\n");
-                                System.out.println("RECURSO ["+myAgent.getName()+"] => RESPOSTA: [0]=> " +resposta[0] + "[1]=> " + resposta[1]);
-
-                                if(Utilities.FIRST_COME_FIRST_SERVE)
-                                    dataChegada = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").parse(resposta[0]);
-                                else urgencia = Double.parseDouble(resposta[0]);
-
-                                repliesCnt++;
-                                if(!examesPossiveis.contains(new Exame(resposta[1])) ){
-                                    System.out.println("RECURSO ["+myAgent.getName()+"] não faz " + resposta[1]);
-                                    break;
-                                }
-
-                                System.out.println("RECURSO ["+myAgent.getName()+"] => Resposta do paciente com exame: " + resposta[1]);
-                            }catch(Exception e) {
-                                System.out.println(e.getMessage());
-                            }
-
-                            if(Utilities.FIRST_COME_FIRST_SERVE) {
-                                // Escolhe o 1º que chegou - mais antigo
-                                if (maisAntigo == null || !dataChegada.before(maisAntigoVal)) {
-                                    maisAntigoVal = dataChegada;
-                                    maisAntigo = reply.getSender();
-                                    currentExame = new Exame(resposta[1]);
+                                else {//pacient accepted exame
+                                    // recurso agents, blocks while performing the exam
+                                    System.out.println("RECURSO ["+recursoName+"] => Vai bloquear " + currentExame.getTempo() + "ms");
+                                    //TODO block nao funciona, pq desbloqueia ao receber uma msg
+                                    block((long) currentExame.getTempo());
+                                    System.out.println("RECURSO ["+recursoName+"] => Ja fiz o exame, vou acordar!");
                                 }
                             }
-                            else {
-                                // Escolhe o mais urgente
-                                if (maisUrgente == null || urgencia > maisUrgenteVal) {
-                                    //Escolhe a melhor "oferta", isto é o paciente mais urgente
-                                    maisUrgenteVal = urgencia;
-                                    maisUrgente = reply.getSender();
-                                    currentExame = new Exame(resposta[1]);
-                                }
-                            }
+                            //reset paciente escolhido
+                            maisUrgente = null;
+                            maisAntigo = null;
+                            currentExame = null;
+                            maisAntigoVal = null;
+                            maisUrgenteVal = 0;
+
+                            step = 4;
                         }
+                        else block();
 
-                        //repliesCn++t;
-                        System.out.println("Repply count: " + Integer.toString(repliesCnt));
-                        System.out.println("Numero Total de pacientes: " + Integer.toString(pacientes.length));
-
-                        if (repliesCnt >= pacientes.length) {
-                            // Já foram recebidas todas as respostas
-                            System.out.println("RECURSO: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(pacientes.length) );
-                            step = 2;
-                        }
-                    }
-                    else {
-                        block();
-                    }
-                    break;
-                case 2:
-                    // Chamar o paciente para o exame segundo a melhor oferta
-                    ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-
-                    if(Utilities.FIRST_COME_FIRST_SERVE)
-                        order.addReceiver(maisAntigo);
-                    else order.addReceiver(maisUrgente);
-
-                    System.out.println("RECURSO ["+myAgent.getName()+"] => Vai dizer ao paciente que aceita fazer exame: " + currentExame.toString());
-                    order.setContent(currentExame.toString()+"\n"+currentExame.getUniqueID());
-                    order.setConversationId("oferta-exame");
-                    order.setReplyWith("order"+System.currentTimeMillis());
-                    myAgent.send(order);
-                    // Prepare the template to get the purchase order reply
-                    mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
-                            MessageTemplate.MatchInReplyTo(order.getReplyWith()));
-                    step = 3;
-                    break;
-                case 3:
-                    // Receber a resposta ao chamamento
-                    reply = myAgent.receive(mt);
-                    if (reply != null) {
-                        // Purchase order reply received
-                        if (reply.getPerformative() == ACLMessage.CONFIRM) {
-                            String exame = reply.getContent().split(":")[1];
-                            if(!currentExame.getNome().equals(exame))
-                                System.err.println("Exames do not match!! " + currentExame.toString() + " vs " + exame);
-
-                            else {//pacient accepted exame
-                                // recurso agents, blocks while performing the exam
-                                System.out.println("RECURSO ["+myAgent.getName()+"] => Vai bloquear " + currentExame.getTempo() + "ms");
-                                block((long) currentExame.getTempo());
-                                System.out.println("RECURSO ["+myAgent.getName()+"] => Ja fiz o exame, vou acordar!");
-                            }
-                        }
-                        step = 4;
-                    }
-                    else {
-                        block();
-                    }
-                    break;
-            }
+                        break;
+                }
         }
         public boolean done() {
             return ((step == 2 && (maisUrgente == null && maisAntigo == null)) || step == 4);
         }
     }
-
-    //addBehaviour(new OfferRequestsServer());
-
-    //adicionar so depois de ter paciente
- /*       addBehaviour(new WakerBehaviour(this, (long) currentExame.getTempo()) {
-            protected void onWake() {
-                // perform operation X
-                //demora x tempo para fazer o exame, depois acorda e modifica a health do paciente
-                currentPaciente.setHealth(currentPaciente.getHealth() + currentExame.getImprovement());
-                currentPaciente.removeFirstExame();
-                setCurrentPaciente(null);
-                setCurrentExame(null);
-            }
-        } );
-        */
-
 
     /*
      *   Getters and setters
@@ -255,8 +259,7 @@ public class RecursoAgent extends Agent {
     }
 
     public boolean isAvailable() {
-        if(this.currentPaciente == null) return true;
-        return false;
+        return available;
     }
 
     public ArrayList<Exame> getExamesPossiveis() {
