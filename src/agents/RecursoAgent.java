@@ -17,6 +17,8 @@ import jade.lang.acl.MessageTemplate;
 import utils.DynamicList;
 import utils.Utilities;
 
+import javax.swing.*;
+
 import static java.lang.Thread.sleep;
 
 public class RecursoAgent extends Agent {
@@ -40,7 +42,13 @@ public class RecursoAgent extends Agent {
 
         recursoName = this.getName().split("@")[0];
 
-
+        //Criacao da GUI
+        List = new DynamicList();
+        JFrame frame = new JFrame(recursoName);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setContentPane(List);
+        frame.setSize(300, 250);
+        frame.setVisible(true);
 
         examesPossiveis = new ArrayList<Exame>();
 
@@ -226,10 +234,20 @@ public class RecursoAgent extends Agent {
 
                                 else {//pacient accepted exame
                                     // recurso agents, blocks while performing the exam
-
+                                    List.addMessage2(currentExame.getNome(), String.valueOf(currentExame.getTempo()),"Paciente Name", "Ocupado");
                                     System.out.println("RECURSO ["+recursoName+"] => Vai bloquear " + currentExame.getTempo() + "ms");
                                     //TODO block nao funciona, pq desbloqueia ao receber uma msg
-                                    block((long) currentExame.getTempo());
+                                    try {
+                                        Thread.sleep((long)currentExame.getTempo());
+
+                                    } catch (InterruptedException ex)
+                                    {
+                                        System.out.println("EXCECAO THREAD (RECURSO)");
+                                        System.out.print(ex.getMessage());
+                                    }
+                                    String s = "";
+                                    List.addMessage2(currentExame.getNome(), String.valueOf(currentExame.getTempo()),"Paciente Name", "Livre");
+
                                     System.out.println("RECURSO ["+recursoName+"] => Ja fiz o exame, vou acordar!");
                                 }
                             }

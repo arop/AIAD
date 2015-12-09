@@ -44,7 +44,7 @@ public class PacienteAgent extends Agent {
         JFrame frame = new JFrame(pacienteName);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setContentPane(List);
-        frame.setSize(520, 400);
+        frame.setSize(300, 250);
         frame.setVisible(true);
 
         try {

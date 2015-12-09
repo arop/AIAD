@@ -17,6 +17,7 @@ Publisher: O'Reilly
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Date;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -48,6 +49,21 @@ public class DynamicList extends JPanel {
         model.addElement("Duracao: "+duracao);
         model.addElement("Entrada: "+entrada);
         model.addElement("////////////////////////");
+    }
+
+    public void addMessage2(String exame, String duracao,String paciente, String estado){
+
+        if(estado.equals("Ocupado")){
+            model.addElement("Inicio: "+new Date().toString());
+            model.addElement("Paciente: "+paciente);
+            model.addElement("Exame: "+exame);
+            model.addElement("Duracao: "+duracao);
+            model.addElement("////////////////////////");
+        }
+        else{
+            model.addElement("Livre: "+ new Date().toString());
+            model.addElement("////////////////////////");
+        }
     }
 
     public void deleteMessage(int id){
