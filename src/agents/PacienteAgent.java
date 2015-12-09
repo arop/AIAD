@@ -26,6 +26,9 @@ public class PacienteAgent extends Agent {
     private Date dataChegada = new Date();
     private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     private Behaviour existir;
+    private long start;
+    private long elapsedTime;
+    private Boolean available = true;
 
     DynamicList List;
 
@@ -101,26 +104,40 @@ public class PacienteAgent extends Agent {
     private class OfferRequestsServer extends CyclicBehaviour {
         public void action() {
             ACLMessage msg = myAgent.blockingReceive();
-            if (msg != null) {
-                if (msg.getPerformative() == ACLMessage.CFP) {
+            if (msg != null ) {
+                if(available) {
+                    if (msg.getPerformative() == ACLMessage.CFP ) {
 
-                    // Message received. Process it
-                    String exame = msg.getContent();
-                    Exame e = new Exame(exame);
-                    ACLMessage reply = msg.createReply();
+                        // Message received. Process it
+                        String exame = msg.getContent();
+                        Exame e = new Exame(exame);
+                        ACLMessage reply = msg.createReply();
 
-                    System.out.println("PACIENTE ["+pacienteName+"] => Recebe proposta de recurso para: " + exame);
+                        System.out.println("PACIENTE ["+pacienteName+"] => Recebe proposta de recurso para: " + exame);
 
-                    reply.setPerformative(ACLMessage.PROPOSE);
-                    String resposta;
-                    //TODO mudar para qd for sequencial
-                    if (Utilities.FIRST_COME_FIRST_SERVE)
-                        resposta = dateFormat.format(dataChegada) + "\n" + e.getNome();
-                    else resposta = String.valueOf(utilityFunction(e)) + "\n" + e.getNome();
 
-                    reply.setContent(resposta);
-                    System.out.println("PACIENTE ["+pacienteName+"] =>  Envia proposta c/: " + resposta);
+                        reply.setPerformative(ACLMessage.PROPOSE);
+                        String resposta;
+                        //TODO mudar para qd for sequencial
+                        if (Utilities.FIRST_COME_FIRST_SERVE)
+                            resposta = dateFormat.format(dataChegada) + "\n" + e.getNome();
+                        else resposta = String.valueOf(utilityFunction(e)) + "\n" + e.getNome();
 
+                        reply.setContent(resposta);
+                        System.out.println("PACIENTE [" + pacienteName + "] =>  Envia proposta c/: " + resposta);
+
+
+                        myAgent.send(reply);
+                    }
+                    else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
+                        String[] exameSplit = msg.getContent().split("\n");
+                        System.out.println("PACIENTE [" + pacienteName + "] => Recurso aceitou fazer: " + exameSplit[0]);
+                        if (exames.contains(new Exame(exameSplit[0]))) {
+                            System.out.println("PACIENTE [" + pacienteName + "] => RESPOSTA: [0]=>" + exameSplit[0] + " [1]=>" + exameSplit[1]);
+                            Exame e = new Exame(exameSplit[0]);
+                            System.out.println("Definicoes do exame: " + e.getNome() + " ID MAL: " + e.getUniqueID());
+                            e.setUniqueID(exameSplit[1]);
+                            System.out.println(" ID UPDATED: " + e.getUniqueID());
                     myAgent.send(reply);
                 }
                 else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
@@ -135,35 +152,41 @@ public class PacienteAgent extends Agent {
                         System.out.println("Definicoes do exame: " + e.getNome());
                         removeExame(e);
 
-                        ACLMessage reply = msg.createReply();
-                        reply.setPerformative(ACLMessage.CONFIRM);
-                        reply.setContent("entao vou fazer um:" + exameSplit);
+                            ACLMessage reply = msg.createReply();
 
-                        myAgent.send(reply);
+                            System.out.println("ELAPSED TIME " + elapsedTime / 1000000.0);
+                            System.out.println("TEMPO DO EXAME " + e.getTempo());
 
-                        // bloqueia durante o exame, para nao aceitar outras propostas
-                        System.out.println("PACIENTE ["+pacienteName+"] => Confirmou fazer o exame e vai bloquear "+e.getTempo()+"ms");
-                        //TODO block nao funciona, pq desbloqueia ao receber uma msg
-                        try {
-                            Thread.sleep((long)e.getTempo());
-                        }
-                        catch (InterruptedException ex){
-                            System.out.println("EXCECAO SLEEP LANCADA");
-                            System.out.println(ex.getMessage());
-                        }
-                        System.out.println("PACIENTE ["+pacienteName+"] => Acordei! Viva AIAD!");
+                            reply.setPerformative(ACLMessage.CONFIRM);
+                            System.out.println("PACIENTE [" + pacienteName + "] => Confirmou fazer o exame e vai bloquear " + e.getTempo() + "ms");
+                            reply.setContent("entao vou fazer um:" + exameSplit[0]);
+                            myAgent.send(reply);
+                            start = System.nanoTime();
+                            available = false;
 
-                        if(exames.isEmpty()) {
-                            //takeDown();
-                            myAgent.doDelete();
+                        } else {
+                            ACLMessage reply = msg.createReply();
+                            reply.setPerformative(ACLMessage.REFUSE);
+                            reply.setContent("Nao pedi esse exame! [Exame: " + exameSplit[0] + "]");
+                            myAgent.send(reply);
                         }
+
                     }
-                    else {
-                        ACLMessage reply = msg.createReply();
-                        reply.setPerformative(ACLMessage.REFUSE);
-                        reply.setContent("Nao pedi esse exame! [Exame: " + exameSplit+ "]");
-                        myAgent.send(reply);
+                } else if(msg.getPerformative() == ACLMessage.INFORM) {
+                    String exame = msg.getContent();
+                    Exame e = new Exame(exame);
+
+                    removeExame(e);
+                    available = true;
+
+                    if (exames.isEmpty()) {
+                        takeDown();
                     }
+                } else {
+                    ACLMessage reply = msg.createReply();
+                    reply.setPerformative(ACLMessage.REFUSE);
+                    System.out.println("PACIENTE [" + pacienteName + "] =>  Estou ocupado");
+                    myAgent.send(reply);
                 }
             }
         }
