@@ -124,23 +124,22 @@ public class PacienteAgent extends Agent {
                     myAgent.send(reply);
                 }
                 else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-                    String[] exameSplit = msg.getContent().split("\n");
-                    System.out.println("PACIENTE ["+pacienteName+"] => Recurso aceitou fazer: "+exameSplit[0]);
-                    if(exames.contains(new Exame(exameSplit[0]))) {
-                        Exame e = new Exame(exameSplit[0]);
+                    String exameSplit = msg.getContent();
+                    System.out.println("PACIENTE ["+pacienteName+"] => Recurso aceitou fazer: "+exameSplit);
+                    if(exames.contains(new Exame(exameSplit))) {
+                        Exame e = new Exame(exameSplit);
+
                         List.addMessage(e.getNome(),String.valueOf(e.getTempo()), new Date().toString());
-                        System.out.println("PACIENTE [" + pacienteName + "] => RESPOSTA: [0]=>" + exameSplit[0] + " [1]=>" + exameSplit[1]);
-                        System.out.println("Definicoes do exame: " + e.getNome() + " ID MAL: " + e.getUniqueID());
-                        e.setUniqueID(exameSplit[1]);
-                        System.out.println(" ID UPDATED: " + e.getUniqueID());
+
+                        System.out.println("PACIENTE [" + pacienteName + "] => RESPOSTA: [0]=>" + exameSplit);
+                        System.out.println("Definicoes do exame: " + e.getNome());
                         removeExame(e);
 
                         ACLMessage reply = msg.createReply();
                         reply.setPerformative(ACLMessage.CONFIRM);
-                        reply.setContent("entao vou fazer um:" + exameSplit[0]);
+                        reply.setContent("entao vou fazer um:" + exameSplit);
 
                         myAgent.send(reply);
-
 
                         // bloqueia durante o exame, para nao aceitar outras propostas
                         System.out.println("PACIENTE ["+pacienteName+"] => Confirmou fazer o exame e vai bloquear "+e.getTempo()+"ms");
@@ -153,15 +152,17 @@ public class PacienteAgent extends Agent {
                             System.out.println(ex.getMessage());
                         }
                         System.out.println("PACIENTE ["+pacienteName+"] => Acordei! Viva AIAD!");
+
+                        if(exames.isEmpty()) {
+                            //takeDown();
+                            myAgent.doDelete();
+                        }
                     }
                     else {
                         ACLMessage reply = msg.createReply();
                         reply.setPerformative(ACLMessage.REFUSE);
-                        reply.setContent("Nao pedi esse exame! [Exame: " + exameSplit[0]+ "]");
+                        reply.setContent("Nao pedi esse exame! [Exame: " + exameSplit+ "]");
                         myAgent.send(reply);
-                    }
-                    if(exames.isEmpty()) {
-                        takeDown();
                     }
                 }
             }
@@ -226,7 +227,7 @@ public class PacienteAgent extends Agent {
         System.out.println("Paciente ["+pacienteName+"] vai remover exame");
         System.out.println("Antes de remover.." + this.exames.size());
         System.out.println("Remover da lista de exames do paciente o exame que já foi realizado...");
-        System.out.println("Informações do exame realizado... Nome: " + e.getNome() +"\nID: "+ e.getUniqueID());
+        System.out.println("Informações do exame realizado... Nome: " + e.getNome());
         this.exames.remove(e);
         System.out.println("Depois de remover.." + this.exames.size());
     }

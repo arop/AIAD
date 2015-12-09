@@ -213,7 +213,7 @@ public class RecursoAgent extends Agent {
                             System.out.println("RECURSO ["+recursoName+"] => Vai dizer ao paciente [" + maisUrgente.getName().split("@")[0] + "] que aceita fazer exame: " + currentExame.toString());
                         }
 
-                        order.setContent(currentExame.toString()+"\n"+currentExame.getUniqueID());
+                        order.setContent(currentExame.toString());
                         order.setConversationId("oferta-exame");
                         order.setReplyWith("order"+System.currentTimeMillis());
                         myAgent.send(order);
