@@ -69,7 +69,7 @@ public class RecursoAgent extends Agent {
 
             // Vai buscar todos os pacientes que precisam de um determinado exame
             // TODO É preciso mudar para informar isto só quando estiver available e não tipo ciclo.
-            addBehaviour(new TickerBehaviour(this, 2500) {
+            addBehaviour(new TickerBehaviour(this, 2000) {
                 protected void onTick() {
                     if(available) {
                         for (Exame e : examesPossiveis) {

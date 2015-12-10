@@ -27,6 +27,7 @@ public class PacienteAgent extends Agent {
     private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     private Behaviour existir;
     private Boolean available = true;
+    DFAgentDescription dfd = new DFAgentDescription();
 
     DynamicList List;
 
@@ -70,16 +71,23 @@ public class PacienteAgent extends Agent {
 
         System.out.println("Paciente "+ this.getAID().getName() + " with " + this.health + " health! And sequencial="+this.isSequencial);
 
-        // manda pedido para cada exame
-        DFAgentDescription dfd = new DFAgentDescription();
         dfd.setName(getAID());
         // TODO mudar qd for para por pedidos sequenciais
-        for (int i = 0; i < exames.size(); i++) {
+        if(isSequencial) {
+            // manda pedido para o primeiro exame
             ServiceDescription sd = new ServiceDescription();
-            //sd.setType("preciso-exame");
-            sd.setType("preciso-exame-" + exames.get(i).getNome());
+            sd.setType("preciso-exame-" + exames.get(0).getNome());
             sd.setName("JADE-fazer-exame");
             dfd.addServices(sd);
+        }
+        else {
+            // manda pedido para cada exame
+            for (int i = 0; i < exames.size(); i++) {
+                ServiceDescription sd = new ServiceDescription();
+                sd.setType("preciso-exame-" + exames.get(i).getNome());
+                sd.setName("JADE-fazer-exame");
+                dfd.addServices(sd);
+            }
         }
 
         try {
@@ -112,19 +120,18 @@ public class PacienteAgent extends Agent {
                         ACLMessage reply = msg.createReply();
 
                         String resposta;
-                        if(exames.contains(e)) {
+                        if((exames.contains(e) && !isSequencial) || (isSequencial && exames.get(0).equals(e))) {
                             System.out.println("PACIENTE [" + pacienteName + "] => Recebe proposta de recurso para: " + exame);
 
                             reply.setPerformative(ACLMessage.PROPOSE);
 
-                            //TODO mudar para qd for sequencial
                             if (Utilities.FIRST_COME_FIRST_SERVE)
                                 resposta = dateFormat.format(dataChegada) + "\n" + e.getNome();
                             else resposta = String.valueOf(utilityFunction(e)) + "\n" + e.getNome();
                         }
                         else {
                             reply.setPerformative(ACLMessage.REFUSE);
-                            resposta = "Ja nao quero esse exame";
+                            resposta = "Nao quero esse exame";
                         }
                         reply.setContent(resposta);
                         System.out.println("PACIENTE [" + pacienteName + "] =>  Envia proposta c/: " + resposta);
@@ -134,14 +141,13 @@ public class PacienteAgent extends Agent {
                     else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                         String exameSplit = msg.getContent();
                         System.out.println("PACIENTE ["+pacienteName+"] => Recurso aceitou fazer: "+exameSplit);
-                        if(exames.contains(new Exame(exameSplit))) {
-                            Exame e = new Exame(exameSplit);
+                        Exame e = new Exame(exameSplit);
 
+                        if((exames.contains(e) && !isSequencial) || (isSequencial && exames.get(0).equals(e))) {
                             List.addMessage(e.getNome(),String.valueOf(e.getTempo()), new Date().toString());
 
                             System.out.println("PACIENTE [" + pacienteName + "] => RESPOSTA: " + exameSplit);
                             System.out.println("Definicoes do exame: " + e.getNome());
-                            removeExame(e);
 
                             ACLMessage reply = msg.createReply();
 
@@ -164,11 +170,47 @@ public class PacienteAgent extends Agent {
 
                     health += e.getImprovement();
 
-                    removeExame(e);
+                    if(!removeExame(e))
+                        System.err.println("NAO REMOVEU EXAME");
+
                     available = true;
 
                     if (exames.isEmpty()) {
-                        takeDown();
+                        doDelete();
+                    }
+
+                    dfd = new DFAgentDescription();
+                    dfd.setName(myAgent.getAID());
+
+                    if(isSequencial && !exames.isEmpty()) {
+                        // manda pedido para o proximo exame
+                        ServiceDescription sd1 = new ServiceDescription();
+                        sd1.setType("preciso-exame-" + exames.get(0).getNome());
+                        sd1.setName("JADE-fazer-exame");
+
+                        dfd.addServices(sd1);
+
+                        try {
+                            //modify faz overwrite
+                            DFService.modify(myAgent, dfd);
+                        } catch (FIPAException e1) {
+                            e1.printStackTrace();
+                        }
+                    } else if(!isSequencial && !exames.contains(e)) {
+                        System.out.println("PACIENTE ["+pacienteName+"] => vai remover exame do df: " + e.getNome());
+
+                        for (Exame exame1 : exames) {
+                            ServiceDescription sd1 = new ServiceDescription();
+                            sd1.setType("preciso-exame-" + exame1.getNome());
+                            sd1.setName("JADE-fazer-exame");
+                            dfd.addServices(sd1);
+                        }
+
+                        try {
+                            DFService.modify(myAgent, dfd);
+                        } catch (FIPAException e1) {
+                            e1.printStackTrace();
+                        }
                     }
                 } else {
                     ACLMessage reply = msg.createReply();
@@ -235,16 +277,15 @@ public class PacienteAgent extends Agent {
         this.exames.add(e);
     }
 
-    public void removeExame(Exame e) {
+    public boolean removeExame(Exame e) {
         System.out.println("Paciente ["+pacienteName+"] vai remover exame");
         System.out.println("Antes de remover.." + this.exames.size());
         System.out.println("Remover da lista de exames do paciente o exame que já foi realizado...");
         System.out.println("Informações do exame realizado... Nome: " + e.getNome());
-        this.exames.remove(e);
+        boolean x = this.exames.remove(e);
         System.out.println("Depois de remover.." + this.exames.size());
+        return x;
     }
-
-    public void removeFirstExame() { if(!this.exames.isEmpty()) this.exames.remove(0);}
 
     public float getHealth() {
         return health;
@@ -252,10 +293,6 @@ public class PacienteAgent extends Agent {
 
     public void setHealth(float health) {
         this.health = health;
-    }
-
-    public Exame getNextExam() {
-        return exames.get(0);
     }
 
 }
