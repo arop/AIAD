@@ -2,10 +2,14 @@ package hospital;
 
 import utils.Utilities;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
  * Classe Exame, correspondendo a um exame/tratamento que um paciente quer fazer
  * Contem um nome, um "improvement" que nos diz quanto ira variar a saude do paciente com este exame
  * e um tempo - o tempo que demora o exame.
+ * Exame - improvement random
+ * Tratamento - improvement positivo
  */
 public class Exame {
     private String nome;
@@ -26,6 +30,9 @@ public class Exame {
 
     public Exame(String nome, float imp, float tempo) {
         this.nome = nome;
+        if(imp == 0) {
+            imp = ThreadLocalRandom.current().nextInt(-50, 100 + 1); //generate
+        }
         this.improvement = imp;
         this.tempo = tempo;
     }
@@ -55,7 +62,6 @@ public class Exame {
 
     public void setNome(String nome) {
         this.nome = nome;
-
     }
 
     @Override
@@ -65,10 +71,10 @@ public class Exame {
 
         Exame exame = (Exame) o;
 
-        if (Float.compare(exame.improvement, improvement) != 0) return false;
+        // cannot compare improvement, because of the range values in exams
+        //if (Float.compare(exame.improvement, improvement) != 0) return false;
         if (Float.compare(exame.tempo, tempo) != 0) return false;
         return nome.equals(exame.nome);
-
     }
 
     @Override

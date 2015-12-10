@@ -195,7 +195,7 @@ public class RecursoAgent extends Agent {
 
                             if(Utilities.FIRST_COME_FIRST_SERVE) {
                                 // Escolhe o 1º que chegou - mais antigo
-                                if (maisAntigo == null || !dataChegada.before(maisAntigoVal)) {
+                                if (maisAntigo == null || dataChegada.before(maisAntigoVal)) {
                                     maisAntigoVal = dataChegada;
                                     maisAntigo = reply.getSender();
                                     currentExame = new Exame(resposta[1]);
@@ -212,7 +212,6 @@ public class RecursoAgent extends Agent {
                             }
                         } else if(reply.getPerformative() == ACLMessage.REFUSE) {
                             repliesCnt++;
-
                         }
 
                         //repliesCn++t;
@@ -287,7 +286,6 @@ public class RecursoAgent extends Agent {
     /*
      *   Getters and setters
      */
-
     public boolean isAvailable() {
         return available;
     }

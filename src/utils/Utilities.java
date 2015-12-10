@@ -12,10 +12,18 @@ public final class Utilities {
         //Exame(String nome, float improvement, float tempo)
         //TODO change values!
         {
-            add(new Exame("raio-x",10,50000));
-            add(new Exame("ecografia",20,10000));
-            add(new Exame("radiografia",-10,3000));
-            add(new Exame("tac",30,5000));
+            // EXAMES (iniciar com improvement = 0)
+            add(new Exame("raio-x",0,5000));
+            add(new Exame("ecografia",0,10000));
+            add(new Exame("radiografia",0,3000));
+            add(new Exame("tac",0,7000));
+
+            // TRATAMENTOS
+            add(new Exame("quimioterapia",100,20000));
+            add(new Exame("engessar",50,20000));
+            add(new Exame("cirurgia1",100,50000));
+            add(new Exame("cirurgia2",80,45000));
+            add(new Exame("cirurgia3",70,40000));
         }
     };
 }

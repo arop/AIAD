@@ -162,6 +162,8 @@ public class PacienteAgent extends Agent {
                     String exame = msg.getContent();
                     Exame e = new Exame(exame);
 
+                    health += e.getImprovement();
+
                     removeExame(e);
                     available = true;
 
@@ -201,6 +203,7 @@ public class PacienteAgent extends Agent {
         double b = Utilities.DECREASE_RATE;
 
         double z = exameToDo.getImprovement();
+        System.out.println("improvement ["+exameToDo.getNome()+"]: "+z);
 
         double a = z - this.getHealth();
 
