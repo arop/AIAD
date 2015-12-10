@@ -26,7 +26,7 @@ public class RecursoAgent extends Agent {
     private Exame currentExame;
     private ArrayList<Exame> examesPossiveis; //lista de exames que o recurso consegue tratar
 
-    private AID[] pacientes;
+    private ArrayList<AID> pacientes;
 
     private String recursoName;
     private DynamicList List;
@@ -81,19 +81,27 @@ public class RecursoAgent extends Agent {
                             try {
                                 // O hospital vai procurar todos os pacientes que "ofereçam um serviço" do tipo "preciso-exame"
                                 DFAgentDescription[] result = DFService.search(myAgent, template);
-                                pacientes = new AID[result.length];
+
                                 for (int j = 0; j < result.length; j++) {
-                                    pacientes[j] = result[j].getName();
+                                    pacientes.add(result[j].getName());
+                                    System.out.println("AGENTE: " + result[j].getName() + " precisa de: " + e.getNome());
+                                    System.out.println("Pacientes 1 length: " + pacientes.size());
                                 }
                             } catch (FIPAException fe) {
                                 fe.printStackTrace();
                             }
+
+                            System.out.println("Pacientes 5 length: " + pacientes.size());
+
                         }
 
+                        System.out.println("Pacientes length 3: " + pacientes.size());
                         // Perform the request
                         // apenas se alguem precisar dos exames que eu forneço
-                        if (pacientes.length > 0)
+                        if (pacientes.size() > 0) {
+                            System.out.println("Ah e tal vou começar um novo request performer.");
                             myAgent.addBehaviour(new RequestPerformer());
+                        }
                     } else {
                         double elapsedTime = (System.nanoTime() - start) / 1000000.0;
 
@@ -148,10 +156,14 @@ public class RecursoAgent extends Agent {
         public void action() {
             switch (step) {
                 case 0:
+                    System.out.println("Exames possíveis length: " + examesPossiveis);
                     for (Exame e : examesPossiveis) {
                         // Mandar um cfp a todos os pacientes
                         ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
+                        System.out.println("Pacientes 2 length: " + pacientes.size());
+
                         for (AID paciente : pacientes) {
+                            System.out.println("Vou mandar mensagem para o paciente: " + paciente.getName());
                             cfp.addReceiver(paciente);
                         }
                         cfp.setContent(e.getNome());
@@ -216,11 +228,11 @@ public class RecursoAgent extends Agent {
 
                         //repliesCn++t;
                         System.out.println("Reply count: " + Integer.toString(repliesCnt));
-                        System.out.println("Numero Total de pacientes: " + Integer.toString(pacientes.length));
+                        System.out.println("Numero Total de pacientes: " + Integer.toString(pacientes.size()));
 
-                        if (repliesCnt >= pacientes.length) {
+                        if (repliesCnt >= pacientes.size()) {
                             // Já foram recebidas todas as respostas
-                            System.out.println("RECURSO: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(pacientes.length) );
+                            System.out.println("RECURSO: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(pacientes.size()) );
                             step = 2;
                         }
                     }
