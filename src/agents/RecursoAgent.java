@@ -26,7 +26,7 @@ public class RecursoAgent extends Agent {
     private Exame currentExame;
     private ArrayList<Exame> examesPossiveis; //lista de exames que o recurso consegue tratar
 
-    private ArrayList<AID> pacientes;
+    private ArrayList<ArrayList<AID>> pacientes = new ArrayList<ArrayList<AID>>();
 
     private String recursoName;
     private DynamicList List;
@@ -72,6 +72,8 @@ public class RecursoAgent extends Agent {
             addBehaviour(new TickerBehaviour(this, 2000) {
                 protected void onTick() {
                     if(available) {
+                        pacientes.clear();
+
                         for (Exame e : examesPossiveis) {
                             // De seguida é feito update da lista dos pacientes porque podem entrar pacientes a qq hora
                             DFAgentDescription template = new DFAgentDescription();
@@ -82,24 +84,24 @@ public class RecursoAgent extends Agent {
                                 // O hospital vai procurar todos os pacientes que "ofereçam um serviço" do tipo "preciso-exame"
                                 DFAgentDescription[] result = DFService.search(myAgent, template);
 
+                                ArrayList<AID> pacientesTemp = new  ArrayList<AID>();
+
                                 for (int j = 0; j < result.length; j++) {
-                                    pacientes.add(result[j].getName());
+                                    pacientesTemp.add(result[j].getName());
                                     System.out.println("AGENTE: " + result[j].getName() + " precisa de: " + e.getNome());
-                                    System.out.println("Pacientes 1 length: " + pacientes.size());
                                 }
+
+                                pacientes.add(pacientesTemp);
+
                             } catch (FIPAException fe) {
                                 fe.printStackTrace();
                             }
 
-                            System.out.println("Pacientes 5 length: " + pacientes.size());
-
                         }
 
-                        System.out.println("Pacientes length 3: " + pacientes.size());
                         // Perform the request
                         // apenas se alguem precisar dos exames que eu forneço
-                        if (pacientes.size() > 0) {
-                            System.out.println("Ah e tal vou começar um novo request performer.");
+                        if (getTodosPacientes(pacientes) > 0) {
                             myAgent.addBehaviour(new RequestPerformer());
                         }
                     } else {
@@ -157,32 +159,34 @@ public class RecursoAgent extends Agent {
             switch (step) {
                 case 0:
                     System.out.println("Exames possíveis length: " + examesPossiveis);
-                    for (Exame e : examesPossiveis) {
+                    for (int i = 0; i < examesPossiveis.size(); i++) {
                         // Mandar um cfp a todos os pacientes
                         ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
                         System.out.println("Pacientes 2 length: " + pacientes.size());
 
-                        for (AID paciente : pacientes) {
-                            System.out.println("Vou mandar mensagem para o paciente: " + paciente.getName());
-                            cfp.addReceiver(paciente);
+                        for (int j = 0; j < pacientes.get(i).size(); j++) {
+                            System.out.println("Vou mandar mensagem para o paciente: " + pacientes.get(i).get(j).getName());
+                            cfp.addReceiver(pacientes.get(i).get(j));
                         }
-                        cfp.setContent(e.getNome());
-                        cfp.setConversationId("oferta-exame");
-                        cfp.setReplyWith("cfp" + System.currentTimeMillis()); // Unique value
+                        cfp.setContent(examesPossiveis.get(i).getNome());
+                       // cfp.setConversationId("oferta-exame");
+                       // cfp.setReplyWith("cfp" + System.currentTimeMillis()); // Unique value
                         myAgent.send(cfp);
                         // Prepare the template to get proposals
-                        mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
-                                MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));
+                    /*    mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
+                                MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));*/
                     }
                     step = 1;
                     break;
                 case 1:
                     // Recebe de todos os seus pacientes a sua urgencia/data de inicio
-                    ACLMessage reply = myAgent.receive(mt);
+                    ACLMessage reply = myAgent.receive();
                     if (reply != null) {
                         // Recebeu resposta
                         if (reply.getPerformative() == ACLMessage.PROPOSE) {
                             double urgencia = 0;
+
+
 
                             Date dataChegada = new Date();
                             String[] resposta = new String[] {};
@@ -199,7 +203,7 @@ public class RecursoAgent extends Agent {
                                     break;
                                 }
                                 repliesCnt++;
-
+                                System.out.println("Respostas: " + repliesCnt);
                                 System.out.println("RECURSO ["+recursoName+"] => Resposta do paciente com exame: " + resposta[1]);
                             }catch(Exception e) {
                                 System.out.println(e.getMessage());
@@ -228,11 +232,11 @@ public class RecursoAgent extends Agent {
 
                         //repliesCn++t;
                         System.out.println("Reply count: " + Integer.toString(repliesCnt));
-                        System.out.println("Numero Total de pacientes: " + Integer.toString(pacientes.size()));
+                        System.out.println("Numero Total de pacientes: " + Integer.toString(getTodosPacientes(pacientes)));
 
-                        if (repliesCnt >= pacientes.size()) {
+                        if (repliesCnt >= getTodosPacientes(pacientes)) {
                             // Já foram recebidas todas as respostas
-                            System.out.println("RECURSO: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(pacientes.size()) );
+                            System.out.println("RECURSO: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(getTodosPacientes(pacientes)) );
                             step = 2;
                         }
                     }
@@ -258,13 +262,13 @@ public class RecursoAgent extends Agent {
                     order.setReplyWith("order"+System.currentTimeMillis());
                     myAgent.send(order);
                     // Prepare the template to get the purchase order reply
-                    mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
-                            MessageTemplate.MatchInReplyTo(order.getReplyWith()));
+                /*    mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
+                            MessageTemplate.MatchInReplyTo(order.getReplyWith()));*/
                     step = 3;
                     break;
                 case 3:
                     // Receber a resposta ao chamamento
-                    reply = myAgent.receive(mt);
+                    reply = myAgent.receive();
                     if (reply != null) {
                         // Purchase order reply received
                         if (reply.getPerformative() == ACLMessage.CONFIRM) {
@@ -317,6 +321,17 @@ public class RecursoAgent extends Agent {
 
     public void setCurrentExame(Exame currentExame) {
         this.currentExame = currentExame;
+    }
+
+    public int getTodosPacientes(ArrayList< ArrayList<AID> > p) {
+        int counter = 0;
+        for(int i = 0; i < p.size(); i++) {
+            for(int j = 0; j < p.get(i).size(); j++) {
+                counter++;
+            }
+        }
+
+        return counter;
     }
 }
 
