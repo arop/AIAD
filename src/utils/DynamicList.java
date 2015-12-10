@@ -55,7 +55,7 @@ public class DynamicList extends JPanel {
 
         if(estado.equals("Ocupado")){
             model.addElement("Inicio: "+new Date().toString());
-            model.addElement("Paciente: "+paciente);
+            model.addElement("Paciente: "+paciente  );
             model.addElement("Exame: "+exame);
             model.addElement("Duracao: "+duracao);
             model.addElement("////////////////////////");

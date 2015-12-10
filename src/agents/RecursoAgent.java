@@ -103,7 +103,7 @@ public class RecursoAgent extends Agent {
                         if (elapsedTime > currentExame.getTempo() && currentExame != null) {
                             available = true;
                             System.out.println("RECURSO ["+recursoName+"] => Já terminei o exame posso fazer outro");
-
+                            List.addMessage2(currentExame.getNome(),String.valueOf(currentExame.getTempo()),"Paciente","Livre");
                             ACLMessage order = new ACLMessage(ACLMessage.INFORM);
                             order.addReceiver(ultimoPaciente);
                             order.setContent(currentExame.toString());
@@ -266,6 +266,7 @@ public class RecursoAgent extends Agent {
                                 System.out.println("RECURSO ["+recursoName+"] => Vai bloquear " + currentExame.getTempo() + "ms");
                                 available = false;
                                 start = System.nanoTime();
+                                List.addMessage2(currentExame.getNome(),String.valueOf(currentExame.getNome()),"Paciente","Ocupado");
                             }
                             step = 4;
                         } else if(reply.getPerformative() == ACLMessage.REFUSE) {
