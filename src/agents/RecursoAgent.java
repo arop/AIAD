@@ -68,7 +68,6 @@ public class RecursoAgent extends Agent {
             new java.util.Scanner(System.in).nextLine();
 
             // Vai buscar todos os pacientes que precisam de um determinado exame
-            // TODO É preciso mudar para informar isto só quando estiver available e não tipo ciclo.
             addBehaviour(new TickerBehaviour(this, 2000) {
                 protected void onTick() {
                     if(available) {
@@ -185,11 +184,9 @@ public class RecursoAgent extends Agent {
                         // Recebeu resposta
                         if (reply.getPerformative() == ACLMessage.PROPOSE) {
                             double urgencia = 0;
-
-
-
                             Date dataChegada = new Date();
                             String[] resposta = new String[] {};
+
                             try {
                                 resposta = reply.getContent().split("\n");
                                 System.out.println("RECURSO ["+recursoName+"] => RESPOSTA: [0]=> " +resposta[0] + "[1]=> " + resposta[1]);
@@ -226,11 +223,10 @@ public class RecursoAgent extends Agent {
                                     currentExame = new Exame(resposta[1]);
                                 }
                             }
-                        } else if(reply.getPerformative() == ACLMessage.REFUSE) {
+                        } else if(reply.getPerformative() == ACLMessage.REFUSE || reply.getPerformative() == ACLMessage.DISCONFIRM) {
                             repliesCnt++;
                         }
 
-                        //repliesCn++t;
                         System.out.println("Reply count: " + Integer.toString(repliesCnt));
                         System.out.println("Numero Total de pacientes: " + Integer.toString(getTodosPacientes(pacientes)));
 
@@ -271,7 +267,7 @@ public class RecursoAgent extends Agent {
                     reply = myAgent.receive();
                     if (reply != null) {
                         // Purchase order reply received
-                        if (reply.getPerformative() == ACLMessage.CONFIRM) {
+                        if (reply.getPerformative() == ACLMessage.INFORM) {
                             ultimoPaciente = reply.getSender();
                             String exame = reply.getContent().split(":")[1];
                             if(!currentExame.getNome().equals(exame))
@@ -285,7 +281,7 @@ public class RecursoAgent extends Agent {
                                 List.addMessage2(currentExame.getNome(),String.valueOf(currentExame.getNome()),"Paciente","Ocupado");
                             }
                             step = 4;
-                        } else if(reply.getPerformative() == ACLMessage.REFUSE) {
+                        } else if(reply.getPerformative() == ACLMessage.FAILURE) {
                             // pacient is occupied
                             step = 4;
                         }

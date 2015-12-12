@@ -72,7 +72,6 @@ public class PacienteAgent extends Agent {
         System.out.println("Paciente "+ this.getAID().getName() + " with " + this.health + " health! And sequencial="+this.isSequencial);
 
         dfd.setName(getAID());
-        // TODO mudar qd for para por pedidos sequenciais
         if(isSequencial) {
             // manda pedido para o primeiro exame
             ServiceDescription sd = new ServiceDescription();
@@ -130,7 +129,7 @@ public class PacienteAgent extends Agent {
                             else resposta = String.valueOf(utilityFunction(e)) + "\n" + e.getNome();
                         }
                         else {
-                            reply.setPerformative(ACLMessage.REFUSE);
+                            reply.setPerformative(ACLMessage.DISCONFIRM);
                             resposta = "Nao quero esse exame";
                         }
                         reply.setContent(resposta);
@@ -151,7 +150,7 @@ public class PacienteAgent extends Agent {
 
                             ACLMessage reply = msg.createReply();
 
-                            reply.setPerformative(ACLMessage.CONFIRM);
+                            reply.setPerformative(ACLMessage.INFORM);
                             System.out.println("PACIENTE [" + pacienteName + "] => Confirmou fazer o exame e vai bloquear " + e.getTempo() + "ms");
                             reply.setContent("entao vou fazer um:" + exameSplit);
                             myAgent.send(reply);
@@ -159,7 +158,7 @@ public class PacienteAgent extends Agent {
 
                         } else {
                             ACLMessage reply = msg.createReply();
-                            reply.setPerformative(ACLMessage.REFUSE);
+                            reply.setPerformative(ACLMessage.FAILURE);
                             reply.setContent("Nao pedi esse exame! [Exame: " + exameSplit + "]");
                             myAgent.send(reply);
                         }

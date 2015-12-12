@@ -5,7 +5,7 @@ import hospital.Exame;
 import java.util.ArrayList;
 
 public final class Utilities {
-    public final static boolean FIRST_COME_FIRST_SERVE = false;
+    public final static boolean FIRST_COME_FIRST_SERVE = true;
     public final static double DECREASE_RATE = 0.9;
 
     public final static ArrayList<Exame> defaultExames = new ArrayList<Exame>() {
