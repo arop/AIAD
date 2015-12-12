@@ -12,10 +12,13 @@ import jade.domain.FIPAException;
 import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
 import utils.DynamicList;
+import utils.Statistics;
 import utils.Utilities;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.Thread.sleep;
 
@@ -223,7 +226,18 @@ public class PacienteAgent extends Agent {
 
     protected void takeDown() {
         try {
+            Date endDate = new Date();
+            long duration = endDate.getTime() - dataChegada.getTime();
+            System.out.println("Adicionando Tempo de vida do paciente no hospital");
+            Statistics.getInstance().getPacienteLiveTimes().add(new Long(TimeUnit.MILLISECONDS.toSeconds(duration)));
+            System.out.println("Chegada: " + dataChegada.toString() + "\n Agora: " + endDate.toString() + "\nDiferenca: " + String.valueOf(duration));
+
+            List.addCustomMessage("PERMANENCIA DO PACIENTE NO HOSPITAL: " + TimeUnit.MILLISECONDS.toSeconds(duration)+ " segundos");
+            List.addCustomMessage("PERMANENCIA MEDIA NO HOSPITAL updated at " + new Date().toString());
+            List.addCustomMessage(String.valueOf(Statistics.getInstance().calculateAverageTimeOnHospital()) + " segundos");
+
             DFService.deregister(this);
+
         }
         catch (FIPAException fe) {
             fe.printStackTrace();

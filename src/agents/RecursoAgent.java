@@ -16,6 +16,7 @@ import jade.core.behaviours.*;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import utils.DynamicList;
+import utils.Statistics;
 import utils.Utilities;
 
 import javax.swing.*;
@@ -52,6 +53,9 @@ public class RecursoAgent extends Agent {
         frame.setContentPane(List);
         frame.setSize(300, 250);
         frame.setVisible(true);
+
+        Statistics.getInstance().getExamesLiveTimes().put(recursoName,new ArrayList<Double>());
+        Statistics.getInstance().getExamesLiveTimes().get(recursoName).add( new Double( new Date().getTime()));
 
         examesPossiveis = new ArrayList<Exame>();
 
@@ -113,6 +117,9 @@ public class RecursoAgent extends Agent {
                             available = true;
                             System.out.println("RECURSO ["+recursoName+"] => Já terminei o exame posso fazer outro");
                             List.addMessage2(currentExame.getNome(),String.valueOf(currentExame.getTempo()),"Paciente","Livre");
+                            Statistics.getInstance().getExamesLiveTimes().get(recursoName).add(new Double(elapsedTime));
+                            Statistics.getInstance().calculateAverageWaitingOnRoom(recursoName);
+                            List.addCustomMessage("Tempo de espera medio: "+String.valueOf(Statistics.getInstance().calculateAverageWaitingOnRoom(recursoName))+ " segundos");
                             ACLMessage order = new ACLMessage(ACLMessage.INFORM);
                             order.addReceiver(ultimoPaciente);
                             order.setContent(currentExame.toString());
