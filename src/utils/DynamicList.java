@@ -66,6 +66,10 @@ public class DynamicList extends JPanel {
         }
     }
 
+    public void addCustomMessage(String msg){
+        model.addElement(msg);
+    }
+
     public void deleteMessage(int id){
         model.remove(id);
     }
