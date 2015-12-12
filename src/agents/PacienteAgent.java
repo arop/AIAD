@@ -232,9 +232,9 @@ public class PacienteAgent extends Agent {
             Statistics.getInstance().getPacienteLiveTimes().add(new Long(TimeUnit.MILLISECONDS.toSeconds(duration)));
             System.out.println("Chegada: " + dataChegada.toString() + "\n Agora: " + endDate.toString() + "\nDiferenca: " + String.valueOf(duration));
 
-            List.addCustomMessage("PERMANENCIA DO PACIENTE NO HOSPITAL: " + TimeUnit.MILLISECONDS.toSeconds(duration));
+            List.addCustomMessage("PERMANENCIA DO PACIENTE NO HOSPITAL: " + TimeUnit.MILLISECONDS.toSeconds(duration)+ " segundos");
             List.addCustomMessage("PERMANENCIA MEDIA NO HOSPITAL updated at " + new Date().toString());
-            List.addCustomMessage(String.valueOf(Statistics.getInstance().calculateAverageTimeOnHospital()));
+            List.addCustomMessage(String.valueOf(Statistics.getInstance().calculateAverageTimeOnHospital()) + " segundos");
 
             DFService.deregister(this);
 
