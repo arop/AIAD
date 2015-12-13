@@ -31,7 +31,7 @@ public class Exame {
     public Exame(String nome, float imp, float tempo) {
         this.nome = nome;
         if(imp == 0) {
-            imp = ThreadLocalRandom.current().nextInt(-50, 100 + 1); //generate
+            imp = (float) ThreadLocalRandom.current().nextDouble(0.0, 1.0); //generate
         }
         this.improvement = imp;
         this.tempo = tempo;
