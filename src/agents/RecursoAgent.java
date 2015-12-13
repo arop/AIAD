@@ -33,7 +33,7 @@ public class RecursoAgent extends Agent {
     private DynamicList List;
 
     private boolean available = true;
-    private AID ultimoPaciente;
+    private AID ultimoPaciente = null;
 
     private long start;
 
@@ -91,7 +91,7 @@ public class RecursoAgent extends Agent {
 
                                 for (int j = 0; j < result.length; j++) {
                                     pacientesTemp.add(result[j].getName());
-                                    System.out.println("AGENTE: " + result[j].getName() + " precisa de: " + e.getNome());
+                                    //System.out.println("AGENTE: " + result[j].getName() + " precisa de: " + e.getNome());
                                 }
 
                                 pacientes.add(pacientesTemp);
@@ -114,7 +114,6 @@ public class RecursoAgent extends Agent {
                         System.out.println("Tempo do exame: " + currentExame.getTempo());
 
                         if (elapsedTime > currentExame.getTempo() && currentExame != null) {
-                            available = true;
                             System.out.println("RECURSO ["+recursoName+"] => Já terminei o exame posso fazer outro");
                             List.addMessage2(currentExame.getNome(),String.valueOf(currentExame.getTempo()),"Paciente","Livre");
                             Statistics.getInstance().getExamesLiveTimes().get(recursoName).add(new Double(elapsedTime));
@@ -125,7 +124,9 @@ public class RecursoAgent extends Agent {
                             order.setContent(currentExame.toString());
                             myAgent.send(order);
 
+                            available = true;
                             currentExame = null;
+                            ultimoPaciente = null;
 
                         }
                     }
@@ -156,7 +157,7 @@ public class RecursoAgent extends Agent {
         private AID maisUrgente; // O agente paciente que faz a bid mais alta (ie que tem mais urgência)
         private double maisUrgenteVal; // O valor da maior oferta
         private int repliesCnt = 0; // O número de respostas de pacientes
-        private MessageTemplate mt; // O template para receber respostas
+        //private MessageTemplate mt; // O template para receber respostas
         private int step = 0;
         private Date maisAntigoVal;
         private AID maisAntigo;
@@ -168,7 +169,7 @@ public class RecursoAgent extends Agent {
                     for (int i = 0; i < examesPossiveis.size(); i++) {
                         // Mandar um cfp a todos os pacientes
                         ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
-                        System.out.println("Pacientes 2 length: " + pacientes.size());
+                        System.out.println("RECURSO ["+recursoName+"] - Pacientes 2 length: " + pacientes.size());
 
                         for (int j = 0; j < pacientes.get(i).size(); j++) {
                             System.out.println("Vou mandar mensagem para o paciente: " + pacientes.get(i).get(j).getName());
@@ -182,6 +183,9 @@ public class RecursoAgent extends Agent {
                     /*    mt = MessageTemplate.and(MessageTemplate.MatchConversationId("oferta-exame"),
                                 MessageTemplate.MatchInReplyTo(cfp.getReplyWith()));*/
                     }
+                    maisAntigo = null;
+                    maisUrgente = null;
+                    repliesCnt = 0;
                     step = 1;
                     break;
                 case 1:
@@ -231,15 +235,16 @@ public class RecursoAgent extends Agent {
                                 }
                             }
                         } else if(reply.getPerformative() == ACLMessage.REFUSE || reply.getPerformative() == ACLMessage.DISCONFIRM) {
+                            System.out.println("RECURSO ["+recursoName+"]: paciente recusou com msg => " + reply.getContent());
                             repliesCnt++;
                         }
 
                         System.out.println("Reply count: " + Integer.toString(repliesCnt));
-                        System.out.println("Numero Total de pacientes: " + Integer.toString(getTodosPacientes(pacientes)));
+                        System.out.println("RECURSO ["+recursoName+"]: Numero Total de pacientes: " + Integer.toString(getTodosPacientes(pacientes)));
 
                         if (repliesCnt >= getTodosPacientes(pacientes)) {
                             // Já foram recebidas todas as respostas
-                            System.out.println("RECURSO: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(getTodosPacientes(pacientes)) );
+                            System.out.println("RECURSO ["+recursoName+"]: Foram recebidas todas as propostas! " + Integer.toString(repliesCnt) +" / " + Integer.toString(getTodosPacientes(pacientes)) );
                             step = 2;
                         }
                     }
@@ -252,6 +257,12 @@ public class RecursoAgent extends Agent {
                     ACLMessage order = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
 
                     if(Utilities.FIRST_COME_FIRST_SERVE) {
+                        if(currentExame == null)
+                            System.err.println("CURRENT EXAME TA NULL");
+
+                        if(maisAntigo == null)
+                            System.err.println("MAIS ANTIGO TA NULL");
+
                         order.addReceiver(maisAntigo);
                         System.out.println("RECURSO [" + recursoName + "] => Vai dizer ao paciente [" + maisAntigo.getName().split("@")[0] + "] que aceita fazer exame: " + currentExame.toString());
                     }
@@ -275,26 +286,27 @@ public class RecursoAgent extends Agent {
                     if (reply != null) {
                         // Purchase order reply received
                         if (reply.getPerformative() == ACLMessage.INFORM) {
-                            ultimoPaciente = reply.getSender();
                             String exame = reply.getContent().split(":")[1];
                             if(!currentExame.getNome().equals(exame))
                                 System.err.println("Exames do not match!! " + currentExame.toString() + " vs " + exame);
 
                             else {//pacient accepted exame
                                 // recurso agents, blocks while performing the exam
+                                ultimoPaciente = reply.getSender();
                                 System.out.println("RECURSO ["+recursoName+"] => Vai bloquear " + currentExame.getTempo() + "ms");
                                 available = false;
                                 start = System.nanoTime();
                                 List.addMessage2(currentExame.getNome(),String.valueOf(currentExame.getNome()),"Paciente","Ocupado");
                             }
                             step = 4;
-                        } else if(reply.getPerformative() == ACLMessage.FAILURE) {
+                        } else if(reply.getPerformative() == ACLMessage.FAILURE || reply.getPerformative() == ACLMessage.REFUSE) {
                             // pacient is occupied
                             step = 4;
                         }
-
                     }
                     else block();
+                    break;
+                default:
                     break;
             }
         }

@@ -217,6 +217,7 @@ public class PacienteAgent extends Agent {
                 } else {
                     ACLMessage reply = msg.createReply();
                     reply.setPerformative(ACLMessage.REFUSE);
+                    reply.setContent("Estou ocupado");
                     System.out.println("PACIENTE [" + pacienteName + "] =>  Estou ocupado");
                     myAgent.send(reply);
                 }
