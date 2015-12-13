@@ -1,1 +1,0 @@
-java -cp %JADE_PATH%;out/production/AIAD2 jade.Boot -agents drHouse:agents.RecursoAgent(raio-x);p1:agents.PacienteAgent(1,false,raio-x);snif:jade.tools.sniffer.Sniffer  -gui 
