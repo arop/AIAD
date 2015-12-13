@@ -285,7 +285,7 @@ public class RecursoAgent extends Agent {
                                 System.out.println("RECURSO ["+recursoName+"] => Vai bloquear " + currentExame.getTempo() + "ms");
                                 available = false;
                                 start = System.nanoTime();
-                                List.addMessage2(currentExame.getNome(),String.valueOf(currentExame.getNome()),"Paciente","Ocupado");
+                                List.addMessage2(currentExame.getNome(),String.valueOf(currentExame.getTempo()),"Paciente","Ocupado");
                             }
                             step = 4;
                         } else if(reply.getPerformative() == ACLMessage.FAILURE) {
